@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kren.block.BlockRepository;
 import com.kren.common.ApiException;
 import com.kren.common.ErrorCode;
 import com.kren.common.PageResponse;
@@ -20,12 +21,14 @@ public class LetterService {
 
 	private final LetterRepository letterRepository;
 	private final UserRepository userRepository;
+	private final BlockRepository blockRepository;
 	private final StampService stampService;
 
 	public LetterService(LetterRepository letterRepository, UserRepository userRepository,
-			StampService stampService) {
+			BlockRepository blockRepository, StampService stampService) {
 		this.letterRepository = letterRepository;
 		this.userRepository = userRepository;
+		this.blockRepository = blockRepository;
 		this.stampService = stampService;
 	}
 
@@ -50,7 +53,7 @@ public class LetterService {
 		if (senderId == recipientId) {
 			throw new ApiException(ErrorCode.CANNOT_SEND_TO_SELF);
 		}
-		if (!userRepository.existsById(recipientId) || userRepository.existsBlockBetween(senderId, recipientId)) {
+		if (!userRepository.existsById(recipientId) || blockRepository.existsBetween(senderId, recipientId)) {
 			throw new ApiException(ErrorCode.USER_NOT_FOUND);
 		}
 		// Deduct first: it takes the row lock on the sender, so concurrent sends queue up here.

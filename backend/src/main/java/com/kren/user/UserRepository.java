@@ -16,13 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	boolean existsByEmail(String email);
 
-	@Query(nativeQuery = true, value = """
-			SELECT EXISTS (
-			    SELECT 1 FROM blocks
-			    WHERE (blocker_id = :a AND blocked_id = :b) OR (blocker_id = :b AND blocked_id = :a))
-			""")
-	boolean existsBlockBetween(@Param("a") long a, @Param("b") long b);
-
 	// Penpal matching: their native language is what I'm learning and vice versa (served by
 	// ix_users_lang_pair), excluding anyone on either side of a block. Newest members first; id breaks
 	// ties so pages stay stable.

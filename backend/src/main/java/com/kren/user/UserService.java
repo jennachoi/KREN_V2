@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kren.block.BlockRepository;
 import com.kren.common.ApiException;
 import com.kren.common.ErrorCode;
 import com.kren.common.PageResponse;
@@ -22,10 +23,13 @@ public class UserService {
 
 	private final UserRepository userRepository;
 	private final InterestRepository interestRepository;
+	private final BlockRepository blockRepository;
 
-	public UserService(UserRepository userRepository, InterestRepository interestRepository) {
+	public UserService(UserRepository userRepository, InterestRepository interestRepository,
+			BlockRepository blockRepository) {
 		this.userRepository = userRepository;
 		this.interestRepository = interestRepository;
+		this.blockRepository = blockRepository;
 	}
 
 	public MyProfileResponse getMyProfile(long meId) {
@@ -35,7 +39,7 @@ public class UserService {
 	/** Blocked users (in either direction) look nonexistent rather than forbidden. */
 	public PublicProfileResponse getPublicProfile(long meId, long userId) {
 		User user = load(userId);
-		if (meId != userId && userRepository.existsBlockBetween(meId, userId)) {
+		if (meId != userId && blockRepository.existsBetween(meId, userId)) {
 			throw new ApiException(ErrorCode.USER_NOT_FOUND);
 		}
 		return PublicProfileResponse.from(user);

@@ -8,6 +8,7 @@ public enum ErrorCode {
 	LANGUAGES_MUST_DIFFER(HttpStatus.BAD_REQUEST, "Native and learning language must differ"),
 	INVALID_INTEREST(HttpStatus.BAD_REQUEST, "One or more interest ids do not exist"),
 	CANNOT_SEND_TO_SELF(HttpStatus.BAD_REQUEST, "You cannot send a letter to yourself"),
+	CANNOT_BLOCK_SELF(HttpStatus.BAD_REQUEST, "You cannot block yourself"),
 	UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Authentication required"),
 	BAD_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Invalid email or password"),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),
