@@ -44,28 +44,63 @@ export interface Page<T> {
   totalPages: number
 }
 
+export interface Place {
+  country: string
+  lat: number | null
+  lng: number | null
+}
+
+export interface Route {
+  from: Place
+  to: Place
+  distanceKm: number | null
+}
+
 export interface Letter {
   id: number
   sender: UserSummary
   recipient: UserSummary
   parentId: number | null
-  body: string
+  /** null while the letter is still flying to you */
+  body: string | null
   sentAt: string
+  deliverAt: string
+  delivered: boolean
   readAt: string | null
+  route: Route
+  corrected: boolean
 }
 
 export interface LetterSummary {
   id: number
   counterpart: UserSummary
-  preview: string
+  /** null while the letter is still flying to you */
+  preview: string | null
   sentAt: string
+  deliverAt: string
+  delivered: boolean
   readAt: string | null
+}
+
+export interface CorrectionLine {
+  original: string
+  corrected: string
+  note: string | null
+}
+
+export interface Correction {
+  id: number
+  letterId: number
+  corrector: UserSummary
+  comment: string | null
+  createdAt: string
+  lines: CorrectionLine[]
 }
 
 export interface LedgerEntry {
   id: number
   amount: number
-  reason: 'SIGNUP' | 'CHECKIN' | 'SEND_LETTER'
+  reason: 'SIGNUP' | 'CHECKIN' | 'SEND_LETTER' | 'CORRECTION'
   letterId: number | null
   createdAt: string
 }

@@ -1,17 +1,23 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router'
-import { CornerUpLeft, CornerUpRight, Send } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { CornerUpLeft, CornerUpRight, Navigation, Send, SpellCheck } from 'lucide-react'
 import { ApiError } from '../api/client'
-import { useLetter, useMailbox, useMe, useSendLetter } from '../api/hooks'
+import { keys, useCorrection, useLetter, useMailbox, useMe, useSendLetter } from '../api/hooks'
+import { CorrectionEditor, CorrectionView } from '../components/Corrections'
 import type { LetterSummary } from '../api/types'
 import { Avatar, Button, Card, ErrorText, Pager, Spinner, StampIcon } from '../components/ui'
 import { MAX_BODY } from '../lib/domain'
-import { letterDate } from '../lib/locale'
+import { countryName, letterDate } from '../lib/locale'
+import { formatRemaining, useNow } from '../lib/time'
 
 /**
  * v1 letter box: letter cards on the left (sender, reply arrow, stamp, date, preview), the open
  * letter and the reply composer on the right. /letters, /letters/sent, /letters/:id.
  */
+// The tracker pulls in the world map + d3-geo; load it only when a letter is actually in flight.
+const Tracker = lazy(() => import('../components/Tracker').then((m) => ({ default: m.Tracker })))
+
 export function LettersPage({ box }: { box: 'inbox' | 'sent' }) {
   const params = useParams()
   const selectedId = params.id ? Number(params.id) : null
@@ -69,7 +75,9 @@ export function LettersPage({ box }: { box: 'inbox' | 'sent' }) {
 }
 
 function LetterCard({ l, box, selected }: { l: LetterSummary; box: 'inbox' | 'sent'; selected: boolean }) {
-  const unread = box === 'inbox' && !l.readAt
+  const now = useNow(30_000)
+  const inFlight = new Date(l.deliverAt).getTime() > now
+  const unread = box === 'inbox' && !l.readAt && !inFlight
   return (
     <Link to={`/letters/${l.id}`} className="block">
       <div
@@ -94,9 +102,19 @@ function LetterCard({ l, box, selected }: { l: LetterSummary; box: 'inbox' | 'se
           </div>
           <StampIcon className="h-11 w-11 shrink-0" />
         </div>
-        <div className="mt-1 text-right text-[12px] text-soft">{letterDate(l.sentAt)}</div>
-        <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-[#888]">{l.preview}</p>
-        {box === 'sent' && <p className="mt-1 text-[11px] text-muted">{l.readAt ? `✓ Read ${letterDate(l.readAt)}` : 'Not read yet'}</p>}
+        <div className="mt-1 text-right text-[12px] text-soft">
+          {inFlight ? `Arrives in ${formatRemaining(new Date(l.deliverAt).getTime() - now)}` : letterDate(l.sentAt)}
+        </div>
+        {inFlight && box === 'inbox' ? (
+          <p className="mt-1.5 text-[12px] text-[#888]">A letter is on its way. Please wait a little — it's being delivered.</p>
+        ) : (
+          <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-[#888]">{l.preview}</p>
+        )}
+        {box === 'sent' && (
+          <p className="mt-1 text-[11px] text-muted">
+            {inFlight ? '✈ In flight' : l.readAt ? `✓ Read ${letterDate(l.readAt)}` : 'Delivered · not read yet'}
+          </p>
+        )}
       </div>
     </Link>
   )
@@ -104,10 +122,13 @@ function LetterCard({ l, box, selected }: { l: LetterSummary; box: 'inbox' | 'se
 
 function LetterDetail({ id }: { id: number }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { data: me } = useMe()
   const { data: letter, isLoading, error } = useLetter(id)
+  const { data: correction } = useCorrection(id, !!letter?.corrected)
   const reply = useSendLetter()
   const [body, setBody] = useState('')
+  const [correcting, setCorrecting] = useState(false)
 
   if (isLoading) return <Spinner />
   if (error instanceof ApiError && (error.status === 403 || error.status === 404)) {
@@ -118,12 +139,32 @@ function LetterDetail({ id }: { id: number }) {
   const mine = letter.sender.id === me.id
   const other = mine ? letter.recipient : letter.sender
   const outOfStamps = reply.error instanceof ApiError && reply.error.code === 'INSUFFICIENT_STAMPS'
+  const sealed = letter.body == null
+  const refetch = () => qc.invalidateQueries({ queryKey: keys.letter(id) })
+
+  if (sealed) {
+    return (
+      <div className="space-y-4">
+        <Link to="/letters" className="text-[13px] text-muted hover:text-ink lg:hidden">
+          ← Back
+        </Link>
+        <Suspense fallback={<Spinner />}>
+          <Tracker letter={letter} mine={false} onArrive={() => setTimeout(refetch, 800)} />
+        </Suspense>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <Link to={mine ? '/letters/sent' : '/letters'} className="text-[13px] text-muted hover:text-ink lg:hidden">
         ← Back
       </Link>
+      {mine && !letter.delivered && (
+        <Suspense fallback={<Spinner />}>
+          <Tracker letter={letter} mine onArrive={() => setTimeout(refetch, 800)} />
+        </Suspense>
+      )}
       <Card className="px-6 py-5">
         <div className="flex items-center gap-3 border-b border-line pb-4">
           <Link to={`/users/${letter.sender.id === me.id ? me.id : letter.sender.id}`}>
@@ -143,10 +184,26 @@ function LetterDetail({ id }: { id: number }) {
           </Link>
         )}
         <p className="mt-4 text-[14px] leading-[1.9] whitespace-pre-line text-[#444]">{letter.body}</p>
-        {mine && (
-          <p className="mt-5 text-right text-[12px] text-muted">{letter.readAt ? `✓ Read ${letterDate(letter.readAt)}` : 'Not read yet'}</p>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-[12px] text-muted">
+          <span className="flex items-center gap-1">
+            <Navigation size={12} /> {countryName(letter.route.from.country)} → {countryName(letter.route.to.country)}
+            {letter.route.distanceKm != null && ` · ${letter.route.distanceKm.toLocaleString()} km`}
+          </span>
+          {mine && letter.delivered && <span>{letter.readAt ? `✓ Read ${letterDate(letter.readAt)}` : 'Delivered · not read yet'}</span>}
+        </div>
+        {!mine && letter.delivered && !letter.corrected && !correcting && (
+          <div className="mt-4 flex justify-end">
+            <Button variant="grey" onClick={() => setCorrecting(true)}>
+              <SpellCheck size={14} /> Correct (+1 stamp)
+            </Button>
+          </div>
         )}
       </Card>
+
+      {correcting && !letter.corrected && (
+        <CorrectionEditor letter={letter} onDone={() => setCorrecting(false)} onCancel={() => setCorrecting(false)} />
+      )}
+      {correction && <CorrectionView correction={correction} />}
 
       <div>
         <h3 className="mb-2 text-[15px] text-ink">

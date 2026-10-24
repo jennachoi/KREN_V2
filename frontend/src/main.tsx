@@ -8,6 +8,7 @@ import { FriendsPage } from './pages/FriendsPage'
 import { HomePage } from './pages/HomePage'
 import { LettersPage } from './pages/LettersPage'
 import { LoginPage } from './pages/LoginPage'
+import { NotebookPage } from './pages/NotebookPage'
 import { MyProfilePage, UserProfilePage } from './pages/ProfilePage'
 import { SignupPage } from './pages/SignupPage'
 import './index.css'
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
       { path: '/letters', element: <LettersPage key="inbox" box="inbox" /> },
       { path: '/letters/sent', element: <LettersPage key="sent" box="sent" /> },
       { path: '/letters/:id', element: <LettersPage key="inbox" box="inbox" /> },
+      { path: '/notebook', element: <NotebookPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

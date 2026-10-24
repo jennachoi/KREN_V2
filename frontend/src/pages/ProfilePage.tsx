@@ -195,7 +195,7 @@ function OtherProfile({ me, user }: { me: MyProfile; user: PublicProfile }) {
   )
 }
 
-const REASON = { SIGNUP: 'Welcome gift', CHECKIN: 'Daily event', SEND_LETTER: 'Write a letter' }
+const REASON = { SIGNUP: 'Welcome gift', CHECKIN: 'Daily event', SEND_LETTER: 'Write a letter', CORRECTION: 'Corrected a letter' }
 
 function OwnProfile({ me }: { me: MyProfile }) {
   const { data: ledger } = useLedger()

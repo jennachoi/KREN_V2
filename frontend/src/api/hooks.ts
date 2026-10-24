@@ -3,6 +3,8 @@ import { api, ApiError } from './client'
 import type {
   BlockedUser,
   CheckinResult,
+  Correction,
+  CorrectionLine,
   Interest,
   LedgerEntry,
   Letter,
@@ -20,6 +22,8 @@ export const keys = {
   mailbox: (box: 'inbox' | 'sent', page: number) => ['letters', box, page] as const,
   letter: (id: number) => ['letter', id] as const,
   ledger: ['ledger'] as const,
+  correction: (letterId: number) => ['correction', letterId] as const,
+  notebook: (page: number) => ['notebook', page] as const,
   blocks: ['blocks'] as const,
 }
 
@@ -78,6 +82,36 @@ export function useLetter(id: number) {
       return letter
     },
     retry: false,
+  })
+}
+
+export function useCorrection(letterId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.correction(letterId),
+    queryFn: () => api<Correction>(`/api/letters/${letterId}/correction`),
+    enabled,
+    retry: false,
+  })
+}
+
+export function useSubmitCorrection(letterId: number) {
+  const qc = useQueryClient()
+  const refreshStamps = useRefreshStamps()
+  return useMutation({
+    mutationFn: (v: { lines: CorrectionLine[]; comment: string }) =>
+      api<Correction>(`/api/letters/${letterId}/correction`, 'POST', v),
+    onSuccess: (c) => {
+      qc.setQueryData(keys.correction(letterId), c)
+      qc.invalidateQueries({ queryKey: keys.letter(letterId) })
+      refreshStamps()
+    },
+  })
+}
+
+export function useNotebook(page: number) {
+  return useQuery({
+    queryKey: keys.notebook(page),
+    queryFn: () => api<Page<Correction>>(`/api/corrections/notebook?page=${page}&size=10`),
   })
 }
 

@@ -3,13 +3,23 @@ import { Link, Navigate, NavLink, Outlet, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Bell, LogOut, Mail, User } from 'lucide-react'
 import { useLogout, useMe } from '../api/hooks'
-import type { LetterSummary } from '../api/types'
+import type { Correction, LetterSummary } from '../api/types'
 import { timeAgo } from '../lib/locale'
 import { Avatar, Spinner } from './ui'
 
-interface Notice {
-  letter: LetterSummary
-  at: string
+type Notice =
+  | { kind: 'incoming' | 'letter'; letter: LetterSummary; at: string }
+  | { kind: 'correction'; correction: Correction; at: string }
+
+function noticeText(n: Notice) {
+  switch (n.kind) {
+    case 'incoming':
+      return { title: `A letter from ${n.letter.counterpart.displayName} is coming.`, sub: 'Track it on the map.', href: `/letters/${n.letter.id}` }
+    case 'letter':
+      return { title: `A letter from ${n.letter.counterpart.displayName} has arrived!`, sub: n.letter.preview ?? '', href: `/letters/${n.letter.id}` }
+    case 'correction':
+      return { title: `${n.correction.corrector.displayName} corrected your letter.`, sub: `${n.correction.lines.length} sentence(s) — see your notebook.`, href: `/letters/${n.correction.letterId}` }
+  }
 }
 
 /** Shell for every signed-in page: the v1 top bar, live letter notifications, page content. */
@@ -49,6 +59,9 @@ function Navbar({ name, country, notices }: { name: string; country: string; not
           </NavLink>
           <NavLink to="/letters" className={link}>
             LETTER
+          </NavLink>
+          <NavLink to="/notebook" className={link}>
+            NOTEBOOK
           </NavLink>
         </nav>
         <div className="ml-auto flex items-center gap-4 text-ink">
@@ -103,20 +116,23 @@ function NotificationBell({ items, unseen, markSeen, clear }: ReturnType<typeof 
             {items.length === 0 ? (
               <p className="px-4 py-6 text-center text-[13px] text-muted">No new notifications.</p>
             ) : (
-              items.map((n) => (
-                <button
-                  key={`${n.letter.id}-${n.at}`}
-                  onClick={() => {
-                    setOpen(false)
-                    navigate(`/letters/${n.letter.id}`)
-                  }}
-                  className="block w-full border-b border-line px-4 py-3 text-left last:border-0 hover:bg-canvas"
-                >
-                  <p className="text-[13px] text-ink">A letter from {n.letter.counterpart.displayName} is coming.</p>
-                  <p className="mt-0.5 truncate text-[12px] text-muted">{n.letter.preview}</p>
-                  <p className="mt-1 text-[11px] text-[#bbb]">{timeAgo(n.at)}</p>
-                </button>
-              ))
+              items.map((n, i) => {
+                const t = noticeText(n)
+                return (
+                  <button
+                    key={`${n.kind}-${n.at}-${i}`}
+                    onClick={() => {
+                      setOpen(false)
+                      navigate(t.href)
+                    }}
+                    className="block w-full border-b border-line px-4 py-3 text-left last:border-0 hover:bg-canvas"
+                  >
+                    <p className="text-[13px] text-ink">{t.title}</p>
+                    {t.sub && <p className="mt-0.5 truncate text-[12px] text-muted">{t.sub}</p>}
+                    <p className="mt-1 text-[11px] text-[#bbb]">{timeAgo(n.at)}</p>
+                  </button>
+                )
+              })
             )}
           </div>
           {items.length > 0 && (
@@ -174,11 +190,28 @@ function useLetterNotifications(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
     const source = new EventSource('/api/notifications/stream')
+    const add = (n: Notice) => {
+      setItems((prev) => [n, ...prev].slice(0, 20))
+      setUnseen(true)
+    }
+    const at = () => new Date().toISOString()
+    // takeoff: a letter to me is in the air
+    source.addEventListener('incoming', (e) => {
+      add({ kind: 'incoming', letter: JSON.parse((e as MessageEvent).data), at: at() })
+      qc.invalidateQueries({ queryKey: ['letters'] })
+    })
+    // landing: it's readable now
     source.addEventListener('letter', (e) => {
       const letter: LetterSummary = JSON.parse((e as MessageEvent).data)
-      setItems((prev) => [{ letter, at: new Date().toISOString() }, ...prev].slice(0, 20))
-      setUnseen(true)
+      add({ kind: 'letter', letter, at: at() })
       qc.invalidateQueries({ queryKey: ['letters'] })
+      qc.invalidateQueries({ queryKey: ['letter', letter.id] })
+    })
+    source.addEventListener('correction', (e) => {
+      const correction: Correction = JSON.parse((e as MessageEvent).data)
+      add({ kind: 'correction', correction, at: at() })
+      qc.invalidateQueries({ queryKey: ['letter', correction.letterId] })
+      qc.invalidateQueries({ queryKey: ['notebook'] })
     })
     return () => source.close()
   }, [enabled, qc])
