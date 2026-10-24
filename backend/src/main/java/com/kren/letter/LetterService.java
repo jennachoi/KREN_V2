@@ -2,6 +2,7 @@ package com.kren.letter;
 
 import java.time.Instant;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,15 @@ public class LetterService {
 	private final UserRepository userRepository;
 	private final BlockRepository blockRepository;
 	private final StampService stampService;
+	private final ApplicationEventPublisher events;
 
 	public LetterService(LetterRepository letterRepository, UserRepository userRepository,
-			BlockRepository blockRepository, StampService stampService) {
+			BlockRepository blockRepository, StampService stampService, ApplicationEventPublisher events) {
 		this.letterRepository = letterRepository;
 		this.userRepository = userRepository;
 		this.blockRepository = blockRepository;
 		this.stampService = stampService;
+		this.events = events;
 	}
 
 	@Transactional
@@ -47,7 +50,7 @@ public class LetterService {
 	/**
 	 * One transaction: deduct a stamp, insert the letter, write the ledger row. Any failure (no stamps,
 	 * bad recipient, DB error) rolls back all three, so a stamp is never spent without a letter or
-	 * vice versa.
+	 * vice versa. The recipient's live notification fires only once this commits.
 	 */
 	private LetterResponse deliver(long senderId, long recipientId, Letter parent, String body) {
 		if (senderId == recipientId) {
@@ -64,6 +67,7 @@ public class LetterService {
 		User recipient = userRepository.getReferenceById(recipientId);
 		Letter letter = letterRepository.save(new Letter(sender, recipient, parent, body.strip()));
 		stampService.recordLetterSpend(senderId, letter.getId());
+		events.publishEvent(new LetterSentEvent(recipientId, LetterSummary.from(letter, recipientId)));
 		return LetterResponse.from(letter);
 	}
 
