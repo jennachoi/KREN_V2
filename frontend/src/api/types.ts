@@ -26,6 +26,7 @@ export interface PublicProfile {
   learningLang: string
   bio: string | null
   interests: Interest[]
+  createdAt: string
 }
 
 export interface UserSummary {

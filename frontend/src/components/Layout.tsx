@@ -1,118 +1,187 @@
-import { useEffect, useState } from 'react'
-import { Navigate, NavLink, Outlet, useNavigate } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, Navigate, NavLink, Outlet, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ApiError } from '../api/client'
-import { useCheckIn, useLogout, useMe } from '../api/hooks'
+import { Bell, LogOut, Mail, User } from 'lucide-react'
+import { useLogout, useMe } from '../api/hooks'
 import type { LetterSummary } from '../api/types'
-import { Spinner } from './ui'
+import { timeAgo } from '../lib/locale'
+import { Avatar, Spinner } from './ui'
 
-/** Shell for every signed-in page: nav, stamp balance, daily check-in, live letter notifications. */
+interface Notice {
+  letter: LetterSummary
+  at: string
+}
+
+/** Shell for every signed-in page: the v1 top bar, live letter notifications, page content. */
 export function Layout() {
   const { data: me, isLoading } = useMe()
-  const toast = useLetterNotifications(!!me)
+  const notices = useLetterNotifications(!!me)
 
   if (isLoading) return <Spinner />
   if (!me) return <Navigate to="/login" replace />
 
   return (
     <div className="min-h-screen">
-      <Header balance={me.stampBalance} name={me.displayName} />
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      <Navbar name={me.displayName} country={me.country} notices={notices} />
+      <main className="mx-auto max-w-[1040px] px-4 py-7">
         <Outlet />
       </main>
-      {toast}
     </div>
   )
 }
 
-function Header({ balance, name }: { balance: number; name: string }) {
-  const navigate = useNavigate()
-  const logout = useLogout()
-  const checkIn = useCheckIn()
-  const already = checkIn.error instanceof ApiError && checkIn.error.code === 'ALREADY_CHECKED_IN'
-
+function Navbar({ name, country, notices }: { name: string; country: string; notices: ReturnType<typeof useLetterNotifications> }) {
   const link = ({ isActive }: { isActive: boolean }) =>
-    `rounded-lg px-3 py-1.5 text-sm ${isActive ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`
+    `font-display text-[15px] tracking-wide transition-colors ${isActive ? 'text-primary' : 'text-[#999] hover:text-ink'}`
 
   return (
-    <header className="border-b border-line bg-card/80 backdrop-blur">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <NavLink to="/penpals" className="font-serif text-xl font-semibold tracking-tight text-stamp">
-          KREN
-        </NavLink>
-        <nav className="flex gap-1">
-          <NavLink to="/penpals" className={link}>
-            Find penpals
+    <header className="sticky top-0 z-20 border-b border-line bg-white">
+      <div className="mx-auto flex h-[58px] max-w-[1240px] items-center gap-8 px-4">
+        <Link to="/" className="shrink-0">
+          <img src="/logo.png" alt="KREN" className="h-9" />
+        </Link>
+        <nav className="flex gap-6">
+          <NavLink to="/" end className={link}>
+            HOME
           </NavLink>
-          <NavLink to="/inbox" className={link}>
-            Letters
+          <NavLink to="/friends" className={link}>
+            FRIENDS
           </NavLink>
-          <NavLink to="/profile" className={link}>
-            {name}
+          <NavLink to="/letters" className={link}>
+            LETTER
           </NavLink>
         </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <span
-            className="rounded-full border border-stamp/30 bg-stamp/5 px-3 py-1 text-sm font-medium text-stamp"
-            title="Stamps: each letter costs one"
-          >
-            ✉ {balance}
-          </span>
-          <button
-            className="rounded-lg px-2 py-1 text-xs text-muted hover:text-ink disabled:opacity-50"
-            disabled={checkIn.isPending || checkIn.isSuccess || already}
-            onClick={() => checkIn.mutate()}
-          >
-            {checkIn.isSuccess ? '+1 today ✓' : already ? 'Checked in ✓' : 'Daily check-in'}
-          </button>
-          <button
-            className="rounded-lg px-2 py-1 text-xs text-muted hover:text-ink"
-            onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}
-          >
-            Log out
-          </button>
+        <div className="ml-auto flex items-center gap-4 text-ink">
+          <NotificationBell {...notices} />
+          <Link to="/letters" title="Letters" className="text-[#555] hover:text-primary">
+            <Mail size={18} strokeWidth={1.6} />
+          </Link>
+          <AccountMenu name={name} country={country} />
         </div>
       </div>
     </header>
   )
 }
 
+function useClickOutside(onOutside: () => void) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onOutside()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onOutside])
+  return ref
+}
+
+function NotificationBell({ items, unseen, markSeen, clear }: ReturnType<typeof useLetterNotifications>) {
+  const [open, setOpen] = useState(false)
+  const ref = useClickOutside(() => setOpen(false))
+  const navigate = useNavigate()
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        title="Notifications"
+        className="relative text-[#555] hover:text-primary"
+        onClick={() => {
+          setOpen((o) => !o)
+          markSeen()
+        }}
+      >
+        <Bell size={18} strokeWidth={1.6} />
+        {unseen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-[6px] border border-line bg-white shadow-lg">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <span className="font-display text-[14px] text-[#9aa0b4]">Notifications</span>
+            <Bell size={15} className="text-[#9aa0b4]" />
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {items.length === 0 ? (
+              <p className="px-4 py-6 text-center text-[13px] text-muted">No new notifications.</p>
+            ) : (
+              items.map((n) => (
+                <button
+                  key={`${n.letter.id}-${n.at}`}
+                  onClick={() => {
+                    setOpen(false)
+                    navigate(`/letters/${n.letter.id}`)
+                  }}
+                  className="block w-full border-b border-line px-4 py-3 text-left last:border-0 hover:bg-canvas"
+                >
+                  <p className="text-[13px] text-ink">A letter from {n.letter.counterpart.displayName} is coming.</p>
+                  <p className="mt-0.5 truncate text-[12px] text-muted">{n.letter.preview}</p>
+                  <p className="mt-1 text-[11px] text-[#bbb]">{timeAgo(n.at)}</p>
+                </button>
+              ))
+            )}
+          </div>
+          {items.length > 0 && (
+            <button onClick={clear} className="w-full border-t border-line py-2.5 text-[13px] text-soft hover:bg-canvas">
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AccountMenu({ name, country }: { name: string; country: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useClickOutside(() => setOpen(false))
+  const navigate = useNavigate()
+  const logout = useLogout()
+
+  return (
+    <div ref={ref} className="relative">
+      <button className="flex items-center gap-2" onClick={() => setOpen((o) => !o)}>
+        <Avatar name={name} country={country} size={30} />
+        <span className="text-[13px] text-ink">{name}</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-3 w-44 overflow-hidden rounded-[6px] border border-line bg-white py-1 text-[13px] shadow-lg">
+          <button
+            className="flex w-full items-center gap-2 px-4 py-2 hover:bg-canvas"
+            onClick={() => {
+              setOpen(false)
+              navigate('/profile')
+            }}
+          >
+            <User size={15} /> My profile
+          </button>
+          <button
+            className="flex w-full items-center gap-2 px-4 py-2 hover:bg-canvas"
+            onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}
+          >
+            <LogOut size={15} /> Logout
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Server-Sent Events: the backend pushes `letter` events the moment a letter to us is committed. */
 function useLetterNotifications(enabled: boolean) {
   const qc = useQueryClient()
-  const navigate = useNavigate()
-  const [latest, setLatest] = useState<LetterSummary | null>(null)
+  const [items, setItems] = useState<Notice[]>([])
+  const [unseen, setUnseen] = useState(false)
 
   useEffect(() => {
     if (!enabled) return
     const source = new EventSource('/api/notifications/stream')
     source.addEventListener('letter', (e) => {
-      setLatest(JSON.parse((e as MessageEvent).data))
+      const letter: LetterSummary = JSON.parse((e as MessageEvent).data)
+      setItems((prev) => [{ letter, at: new Date().toISOString() }, ...prev].slice(0, 20))
+      setUnseen(true)
       qc.invalidateQueries({ queryKey: ['letters'] })
     })
     return () => source.close()
   }, [enabled, qc])
 
-  useEffect(() => {
-    if (!latest) return
-    const t = setTimeout(() => setLatest(null), 6000)
-    return () => clearTimeout(t)
-  }, [latest])
-
-  if (!latest) return null
-  return (
-    <button
-      onClick={() => {
-        navigate(`/letters/${latest.id}`)
-        setLatest(null)
-      }}
-      className="fixed right-4 bottom-4 left-4 mx-auto max-w-sm rounded-2xl border border-line bg-card p-4 text-left shadow-lg sm:left-auto"
-    >
-      <div className="text-xs font-medium tracking-wide text-stamp uppercase">New letter</div>
-      <div className="mt-1 text-sm">
-        <b>{latest.counterpart.displayName}</b> wrote to you
-      </div>
-      <div className="mt-1 line-clamp-2 text-sm text-muted">{latest.preview}</div>
-    </button>
-  )
+  return { items, unseen, markSeen: () => setUnseen(false), clear: () => setItems([]) }
 }

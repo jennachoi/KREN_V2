@@ -1,83 +1,86 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
 import { ApiError } from '../api/client'
 import type { Interest } from '../api/types'
-import { flag, languageName } from '../lib/locale'
+import { flag } from '../lib/locale'
+
+type ButtonVariant = 'primary' | 'deep' | 'white' | 'grey'
 
 export function Button({
   variant = 'primary',
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' | 'danger' }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
   const styles = {
-    primary: 'bg-stamp text-white hover:bg-stamp-dark disabled:opacity-50',
-    ghost: 'border border-line bg-card text-ink hover:bg-paper disabled:opacity-50',
-    danger: 'border border-stamp/40 text-stamp hover:bg-stamp/5 disabled:opacity-50',
+    primary: 'bg-primary text-white hover:bg-[#4a88d6]',
+    deep: 'bg-deep text-white hover:bg-[#33619d]',
+    white: 'border border-line bg-white text-ink hover:bg-canvas',
+    grey: 'bg-[#efefef] text-soft hover:bg-[#e5e5e5]',
   }[variant]
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${styles} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-[4px] px-4 py-2 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
       {...props}
     />
   )
 }
 
+/** White panel with the thin grey border v1 used for every block. */
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-line bg-card p-5 shadow-sm ${className}`}>{children}</div>
+  return <div className={`rounded-[6px] border border-line bg-white ${className}`}>{children}</div>
 }
 
-export function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+/** v1 card heading: its own bordered strip above the card body. */
+export function CardHead({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-ink">{label}</span>
-      {children}
-      {error && <span className="mt-1 block text-xs text-stamp">{error}</span>}
-    </label>
+    <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+      <h3 className="font-display text-[14px] font-medium text-ink">{children}</h3>
+      {right && <span className="text-[13px] text-soft">{right}</span>}
+    </div>
   )
 }
 
-const inputClass =
-  'w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-sky focus:ring-2 focus:ring-sky/20'
+/** v1 form field: a bordered box with a tiny uppercase label sitting above a borderless input. */
+export function FieldBox({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+  return (
+    <div>
+      <label className="block rounded-[4px] border border-line bg-[#fafafa] px-3 pt-2 pb-1.5 focus-within:border-primary focus-within:bg-white">
+        <span className="block font-display text-[10px] font-medium tracking-wide text-ink uppercase">{label}</span>
+        {children}
+      </label>
+      {error && <p className="mt-1 pl-1 text-[12px] text-coral">{error}</p>}
+    </div>
+  )
+}
 
-export const Input = (props: InputHTMLAttributes<HTMLInputElement>) => <input className={inputClass} {...props} />
-export const Select = (props: SelectHTMLAttributes<HTMLSelectElement>) => <select className={inputClass} {...props} />
-export const Textarea = (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-  <textarea className={`${inputClass} leading-relaxed`} {...props} />
+export const BoxInput = (props: InputHTMLAttributes<HTMLInputElement>) => (
+  <input className="w-full bg-transparent py-0.5 text-[13px] text-ink outline-none placeholder:text-[#bbb]" {...props} />
 )
 
-export function ErrorBanner({ error }: { error: unknown }) {
-  if (!error) return null
-  const message = error instanceof ApiError ? error.message : 'Something went wrong. Please try again.'
-  return <div className="rounded-lg border border-stamp/30 bg-stamp/5 px-3 py-2 text-sm text-stamp">{message}</div>
-}
+export const BoxSelect = (props: SelectHTMLAttributes<HTMLSelectElement>) => (
+  <select className="w-full bg-transparent py-0.5 text-[13px] text-ink outline-none" {...props} />
+)
 
-export function PageTitle({ children, sub }: { children: ReactNode; sub?: ReactNode }) {
+export function Avatar({ name, country, size = 44 }: { name: string; country: string; size?: number }) {
   return (
-    <div className="mb-6">
-      <h1 className="font-serif text-3xl font-semibold text-ink">{children}</h1>
-      {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <div
+        className="flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br from-[#d9e7fa] to-[#b9d1f3] font-display font-semibold text-deep shadow-sm"
+        style={{ fontSize: size * 0.4 }}
+      >
+        {name.slice(0, 1).toUpperCase()}
+      </div>
+      <span
+        className="absolute -bottom-0.5 -left-0.5 flex items-center justify-center rounded-full bg-white leading-none shadow-sm"
+        style={{ width: size * 0.42, height: size * 0.42, fontSize: size * 0.26 }}
+      >
+        {flag(country)}
+      </span>
     </div>
   )
 }
 
-export function LangPair({ native, learning }: { native: string; learning: string }) {
-  return (
-    <span className="text-sm text-muted">
-      Speaks <b className="font-medium text-ink">{languageName(native)}</b> · Learning{' '}
-      <b className="font-medium text-ink">{languageName(learning)}</b>
-    </span>
-  )
-}
-
-export function Avatar({ name, country }: { name: string; country: string }) {
-  return (
-    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky/10 font-serif text-lg font-semibold text-sky">
-      {name.slice(0, 1).toUpperCase()}
-      <span className="absolute -right-1 -bottom-1 text-base leading-none">{flag(country)}</span>
-    </div>
-  )
-}
-
-export function InterestChips({
+/** v1 topic pills: grey by default, solid blue when selected or matched. */
+export function Chips({
   all,
   selected,
   onToggle,
@@ -87,7 +90,7 @@ export function InterestChips({
   onToggle?: (id: number) => void
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {all.map((i) => {
         const on = selected.includes(i.id)
         return (
@@ -96,9 +99,9 @@ export function InterestChips({
             type="button"
             disabled={!onToggle}
             onClick={() => onToggle?.(i.id)}
-            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-              on ? 'border-sky bg-sky text-white' : 'border-line bg-white text-muted hover:border-sky/50'
-            } ${onToggle ? '' : 'cursor-default'}`}
+            className={`rounded-full px-3 py-1 text-[12px] transition-colors ${
+              on ? 'bg-primary font-medium text-white' : 'bg-chip text-soft'
+            } ${onToggle ? (on ? 'hover:bg-[#4a88d6]' : 'hover:bg-[#e2e2e2]') : 'cursor-default'}`}
           >
             {i.name}
           </button>
@@ -108,21 +111,32 @@ export function InterestChips({
   )
 }
 
+/** The v1 letter-card stamp. */
+export const StampIcon = ({ className = '' }: { className?: string }) => (
+  <img src="/img/stamp.png" alt="" className={className} />
+)
+
+export function ErrorText({ error }: { error: unknown }) {
+  if (!error) return null
+  const message = error instanceof ApiError ? error.message : 'Something went wrong. Please try again.'
+  return <p className="text-[12px] text-coral">{message}</p>
+}
+
 export function Pager({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (p: number) => void }) {
   if (totalPages <= 1) return null
   return (
-    <div className="mt-6 flex items-center justify-center gap-3 text-sm">
-      <Button variant="ghost" disabled={page === 0} onClick={() => onPage(page - 1)}>
-        ← Prev
+    <div className="mt-6 flex items-center justify-center gap-1 text-[13px]">
+      <Button variant="white" className="px-3 py-1.5" disabled={page === 0} onClick={() => onPage(page - 1)}>
+        Previous
       </Button>
-      <span className="text-muted">
+      <span className="px-3 text-soft">
         {page + 1} / {totalPages}
       </span>
-      <Button variant="ghost" disabled={page + 1 >= totalPages} onClick={() => onPage(page + 1)}>
-        Next →
+      <Button variant="white" className="px-3 py-1.5" disabled={page + 1 >= totalPages} onClick={() => onPage(page + 1)}>
+        Next
       </Button>
     </div>
   )
 }
 
-export const Spinner = () => <div className="py-12 text-center text-sm text-muted">Loading…</div>
+export const Spinner = () => <div className="py-16 text-center text-[13px] text-muted">Loading…</div>

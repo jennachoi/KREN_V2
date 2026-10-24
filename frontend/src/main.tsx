@@ -3,11 +3,13 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
 import { Layout } from './components/Layout'
-import { LoginPage, SignupPage } from './pages/AuthPages'
-import { ComposePage, LetterPage, MailboxPage } from './pages/LetterPages'
-import { PenpalsPage } from './pages/PenpalsPage'
-import { ProfilePage } from './pages/ProfilePage'
-import { UserPage } from './pages/UserPage'
+import { ComposePage } from './pages/ComposePage'
+import { FriendsPage } from './pages/FriendsPage'
+import { HomePage } from './pages/HomePage'
+import { LettersPage } from './pages/LettersPage'
+import { LoginPage } from './pages/LoginPage'
+import { MyProfilePage, UserProfilePage } from './pages/ProfilePage'
+import { SignupPage } from './pages/SignupPage'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -20,15 +22,16 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: '/', element: <Navigate to="/penpals" replace /> },
-      { path: '/penpals', element: <PenpalsPage /> },
-      { path: '/users/:id', element: <UserPage /> },
+      { path: '/', element: <HomePage /> },
+      { path: '/friends', element: <FriendsPage /> },
+      { path: '/users/:id', element: <UserProfilePage /> },
+      { path: '/profile', element: <MyProfilePage /> },
+      { path: '/profile/edit', element: <MyProfilePage edit /> },
       { path: '/compose/:userId', element: <ComposePage /> },
-      { path: '/inbox', element: <MailboxPage key="inbox" box="inbox" /> },
-      { path: '/sent', element: <MailboxPage key="sent" box="sent" /> },
-      { path: '/letters/:id', element: <LetterPage /> },
-      { path: '/profile', element: <ProfilePage /> },
-      { path: '*', element: <Navigate to="/penpals" replace /> },
+      { path: '/letters', element: <LettersPage key="inbox" box="inbox" /> },
+      { path: '/letters/sent', element: <LettersPage key="sent" box="sent" /> },
+      { path: '/letters/:id', element: <LettersPage key="inbox" box="inbox" /> },
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ])

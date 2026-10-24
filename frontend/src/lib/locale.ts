@@ -21,6 +21,24 @@ export const countryName = (code: string) => regionNames.of(code) ?? code
 export const flag = (country: string) =>
   String.fromCodePoint(...[...country.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0)))
 
-export function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** v1 letter timestamps: 21/08/23 20:39 */
+export function letterDate(iso: string) {
+  const d = new Date(iso)
+  return `${pad(d.getFullYear() % 100)}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** v1 info rows: 2021/08/11 */
+export function dayDate(iso: string) {
+  const d = new Date(iso)
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`
+}
+
+export function timeAgo(iso: string) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
+  if (s < 60) return 'just now'
+  if (s < 3600) return `${Math.floor(s / 60)}m`
+  if (s < 86400) return `${Math.floor(s / 3600)}h`
+  return `${Math.floor(s / 86400)}days`
 }

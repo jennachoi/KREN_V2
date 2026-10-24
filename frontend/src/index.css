@@ -1,20 +1,28 @@
 @import "tailwindcss";
 
+/* Visual language of KREN v1 (2021): Montserrat/Roboto, #5596e6 primary, #3d70b2 deep blue,
+   #393a4f text on a #f4f4f4 canvas, white bordered cards, pill-shaped grey chips. */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", ui-serif, Georgia, serif;
-  --color-paper: #fbf7ef;
-  --color-card: #ffffff;
-  --color-ink: #2b2620;
-  --color-muted: #776d62;
-  --color-line: #e7dfd2;
-  --color-stamp: #b5452f;
-  --color-stamp-dark: #933522;
-  --color-sky: #2f6f8f;
+  --font-sans: "Roboto", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat", "Noto Sans KR", ui-sans-serif, sans-serif;
+  --font-postcard: "Playfair Display", Georgia, serif;
+
+  --color-primary: #5596e6;
+  --color-deep: #3d70b2;
+  --color-navy: #2e4f7f;
+  --color-ink: #393a4f;
+  --color-muted: #999999;
+  --color-soft: #6d6d6d;
+  --color-line: #e8e8e8;
+  --color-canvas: #f4f4f4;
+  --color-chip: #ededed;
+  --color-teal: #41d6c3;
+  --color-coral: #f47c7c;
 }
 
 body {
-  background: var(--color-paper);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 14px;
 }
