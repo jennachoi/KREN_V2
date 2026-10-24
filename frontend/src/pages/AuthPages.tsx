@@ -53,6 +53,17 @@ export function LoginPage() {
           {login.isPending ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
+      <button
+        type="button"
+        onClick={() => {
+          setEmail('emma@demo.kren')
+          setPassword('demo1234')
+        }}
+        className="mt-4 w-full rounded-lg border border-dashed border-line px-3 py-2 text-left text-xs text-muted hover:border-sky/50"
+      >
+        <b className="text-ink">Just looking?</b> Use a demo account: emma@demo.kren or minji@demo.kren, password{' '}
+        <code>demo1234</code> (click to fill)
+      </button>
       <p className="mt-5 text-center text-sm text-muted">
         New here?{' '}
         <Link to="/signup" className="font-medium text-sky hover:underline">

@@ -1,0 +1,15 @@
+# Activated with SPRING_PROFILES_ACTIVE=prod. Database comes from the environment:
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/db
+#   SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD
+server:
+  # Behind the host's TLS-terminating proxy: trust X-Forwarded-* so the app knows requests are HTTPS.
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+  shutdown: graceful
+
+kren:
+  demo:
+    seed: ${KREN_DEMO_SEED:true}
