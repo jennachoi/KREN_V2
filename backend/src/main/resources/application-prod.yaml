@@ -13,3 +13,6 @@ server:
 kren:
   demo:
     seed: ${KREN_DEMO_SEED:true}
+  delivery:
+    # The live site is a demo: 1 hour of flight = 1 minute, so a 24h letter lands in 24 minutes.
+    time-scale: ${KREN_DELIVERY_TIME_SCALE:60}

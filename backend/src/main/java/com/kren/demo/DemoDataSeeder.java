@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import com.kren.auth.AuthService;
@@ -68,14 +69,16 @@ class DemoDataSeeder implements ApplicationRunner {
 	private final LetterService letterService;
 	private final UserRepository userRepository;
 	private final InterestRepository interestRepository;
+	private final JdbcTemplate jdbc;
 
 	DemoDataSeeder(AuthService authService, UserService userService, LetterService letterService,
-			UserRepository userRepository, InterestRepository interestRepository) {
+			UserRepository userRepository, InterestRepository interestRepository, JdbcTemplate jdbc) {
 		this.authService = authService;
 		this.userService = userService;
 		this.letterService = letterService;
 		this.userRepository = userRepository;
 		this.interestRepository = interestRepository;
+		this.jdbc = jdbc;
 	}
 
 	@Override
@@ -106,7 +109,8 @@ class DemoDataSeeder implements ApplicationRunner {
 
 				안녕히 계세요,
 				Emma""");
-		letterService.reply(minji, first.id(), """
+		backdate(first.id(), 3);
+		var answer = letterService.reply(minji, first.id(), """
 				Hi Emma! April is perfect, the cherry blossoms will be out.
 
 				For food and old streets, try Seochon near Gyeongbokgung, and Mangwon Market for snacks. \
@@ -114,8 +118,23 @@ class DemoDataSeeder implements ApplicationRunner {
 
 				Your Korean greeting was perfect, by the way 😊
 				Minji""");
+		backdate(answer.id(), 2);
+		// Liam's letter is still in the air, so the tracking map has something to show.
 		letterService.send(liam, minji, "Hey Minji! Vancouver here. 반가워요 — want to swap hiking spots?");
 		log.info("Seeded {} demo accounts (password '{}')", PERSONAS.size(), PASSWORD);
+	}
+
+	/**
+	 * Pretends a seeded letter was sent {@code days} ago and has long since landed, so the demo opens on
+	 * a conversation already in progress. The arrival is marked processed: nobody was online to notify.
+	 */
+	private void backdate(long letterId, int days) {
+		jdbc.update("""
+				UPDATE letters
+				SET sent_at = sent_at - make_interval(days => ?), deliver_at = sent_at - make_interval(days => ?),
+				    arrival_notified_at = sent_at - make_interval(days => ?)
+				WHERE id = ?
+				""", days, days, days, letterId);
 	}
 
 	private long idOf(String key) {

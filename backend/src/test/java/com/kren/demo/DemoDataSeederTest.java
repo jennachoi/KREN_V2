@@ -26,7 +26,7 @@ class DemoDataSeederTest extends IntegrationTestSupport {
 
 	@Test
 	void seedsOnceAndDemoAccountsCanLogIn() throws Exception {
-		var seeder = new DemoDataSeeder(authService, userService, letterService, userRepository, interestRepository);
+		var seeder = new DemoDataSeeder(authService, userService, letterService, userRepository, interestRepository, jdbc);
 		seeder.run(new DefaultApplicationArguments());
 		seeder.run(new DefaultApplicationArguments()); // e.g. an app restart
 
@@ -35,6 +35,9 @@ class DemoDataSeederTest extends IntegrationTestSupport {
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM letters", Long.class)).isEqualTo(3);
 		// seeded through the real services, so stamps were actually spent
 		assertThat(stampBalance("minji@demo.kren")).isEqualTo(4);
+		// the Emma/Minji exchange has landed; Liam's letter is still in the air for the tracking map
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM letters WHERE deliver_at > ?", Long.class,
+				java.sql.Timestamp.from(clock.instant()))).isEqualTo(1);
 
 		mvc.perform(post("/api/auth/login")
 				.with(xsrf())

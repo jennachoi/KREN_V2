@@ -95,6 +95,7 @@ class LetterApiTest extends IntegrationTestSupport {
 	@Test
 	void readReceiptIsSetOnlyWhenRecipientOpensIt() throws Exception {
 		long letterId = idOf(send(mina, alexId, "read me"));
+		letLettersArrive();
 
 		mvc.perform(get("/api/letters/{id}", letterId).session(mina))
 			.andExpect(jsonPath("$.readAt").value(nullValue()));
@@ -111,6 +112,7 @@ class LetterApiTest extends IntegrationTestSupport {
 	@Test
 	void replyGoesToTheOtherPartyAndLinksParent() throws Exception {
 		long letterId = idOf(send(mina, alexId, "first"));
+		letLettersArrive();
 
 		reply(alex, letterId, "reply")
 			.andExpect(status().isCreated())
@@ -124,6 +126,7 @@ class LetterApiTest extends IntegrationTestSupport {
 		send(mina, alexId, "one");
 		send(eve(), alexId, "x".repeat(150));
 		send(mina, alexId, "three");
+		letLettersArrive();
 
 		mvc.perform(get("/api/letters/inbox").session(alex))
 			.andExpect(jsonPath("$.totalElements").value(3))

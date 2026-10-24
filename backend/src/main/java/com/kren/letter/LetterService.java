@@ -1,5 +1,6 @@
 package com.kren.letter;
 
+import java.time.Clock;
 import java.time.Instant;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,15 +25,22 @@ public class LetterService {
 	private final UserRepository userRepository;
 	private final BlockRepository blockRepository;
 	private final StampService stampService;
+	private final CountryLocations locations;
+	private final DeliveryPolicy deliveryPolicy;
 	private final ApplicationEventPublisher events;
+	private final Clock clock;
 
 	public LetterService(LetterRepository letterRepository, UserRepository userRepository,
-			BlockRepository blockRepository, StampService stampService, ApplicationEventPublisher events) {
+			BlockRepository blockRepository, StampService stampService, CountryLocations locations,
+			DeliveryPolicy deliveryPolicy, ApplicationEventPublisher events, Clock clock) {
 		this.letterRepository = letterRepository;
 		this.userRepository = userRepository;
 		this.blockRepository = blockRepository;
 		this.stampService = stampService;
+		this.locations = locations;
+		this.deliveryPolicy = deliveryPolicy;
 		this.events = events;
+		this.clock = clock;
 	}
 
 	@Transactional
@@ -40,17 +48,21 @@ public class LetterService {
 		return deliver(senderId, recipientId, null, body);
 	}
 
-	/** Either participant may reply; the reply goes to the other one. */
+	/** Either participant may reply; the reply goes to the other one. You can't answer what hasn't arrived. */
 	@Transactional
 	public LetterResponse reply(long senderId, long parentId, String body) {
 		Letter parent = loadVisible(senderId, parentId);
+		if (parent.isSealedFor(senderId, clock.instant())) {
+			throw new ApiException(ErrorCode.LETTER_IN_TRANSIT);
+		}
 		return deliver(senderId, parent.counterpartOf(senderId).getId(), parent, body);
 	}
 
 	/**
 	 * One transaction: deduct a stamp, insert the letter, write the ledger row. Any failure (no stamps,
 	 * bad recipient, DB error) rolls back all three, so a stamp is never spent without a letter or
-	 * vice versa. The recipient's live notification fires only once this commits.
+	 * vice versa. The letter then flies for a distance-based time; the recipient is told it's on its
+	 * way once this commits, and that it has arrived when the dispatcher lands it.
 	 */
 	private LetterResponse deliver(long senderId, long recipientId, Letter parent, String body) {
 		if (senderId == recipientId) {
@@ -65,34 +77,43 @@ public class LetterService {
 		// Loaded after the deduction (which clears the persistence context) so nothing is stale.
 		User sender = userRepository.getReferenceById(senderId);
 		User recipient = userRepository.getReferenceById(recipientId);
-		Letter letter = letterRepository.save(new Letter(sender, recipient, parent, body.strip()));
+		Instant now = clock.instant();
+		Integer distanceKm = locations.distanceKm(sender.getCountry(), recipient.getCountry()).orElse(null);
+		Letter letter = letterRepository.save(new Letter(sender, recipient, parent, body.strip(), now, distanceKm,
+				now.plus(deliveryPolicy.travelTime(distanceKm))));
 		stampService.recordLetterSpend(senderId, letter.getId());
-		events.publishEvent(new LetterSentEvent(recipientId, LetterSummary.from(letter, recipientId)));
-		return LetterResponse.from(letter);
+		events.publishEvent(new LetterSentEvent(recipientId, LetterSummary.from(letter, recipientId, now)));
+		return LetterResponse.from(letter, senderId, now, locations);
 	}
 
-	/** Opening a letter you received marks it read (the read receipt the sender sees). */
+	/**
+	 * Opening a delivered letter you received marks it read (the sender's read receipt). Opening one
+	 * still in flight shows the tracker data with the body withheld.
+	 */
 	@Transactional
 	public LetterResponse read(long viewerId, long letterId) {
 		Letter letter = loadVisible(viewerId, letterId);
-		letter.markReadBy(viewerId, Instant.now());
-		return LetterResponse.from(letter);
+		Instant now = clock.instant();
+		letter.markReadBy(viewerId, now);
+		return LetterResponse.from(letter, viewerId, now, locations);
 	}
 
 	@Transactional(readOnly = true)
 	public PageResponse<LetterSummary> inbox(long userId, int page, int size) {
+		Instant now = clock.instant();
 		return PageResponse.of(letterRepository.findByRecipient_IdOrderBySentAtDescIdDesc(userId,
-				PageRequest.of(page, size)), l -> LetterSummary.from(l, userId));
+				PageRequest.of(page, size)), l -> LetterSummary.from(l, userId, now));
 	}
 
 	@Transactional(readOnly = true)
 	public PageResponse<LetterSummary> sent(long userId, int page, int size) {
+		Instant now = clock.instant();
 		return PageResponse.of(letterRepository.findBySender_IdOrderBySentAtDescIdDesc(userId,
-				PageRequest.of(page, size)), l -> LetterSummary.from(l, userId));
+				PageRequest.of(page, size)), l -> LetterSummary.from(l, userId, now));
 	}
 
 	/** 404 if it doesn't exist, 403 if it exists but isn't yours. */
-	private Letter loadVisible(long userId, long letterId) {
+	Letter loadVisible(long userId, long letterId) {
 		Letter letter = letterRepository.findById(letterId)
 			.orElseThrow(() -> new ApiException(ErrorCode.LETTER_NOT_FOUND));
 		if (!letter.isParticipant(userId)) {

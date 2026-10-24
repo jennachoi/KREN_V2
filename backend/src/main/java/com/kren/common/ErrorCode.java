@@ -18,6 +18,7 @@ public enum ErrorCode {
 	EMAIL_TAKEN(HttpStatus.CONFLICT, "Email is already registered"),
 	INSUFFICIENT_STAMPS(HttpStatus.CONFLICT, "Not enough stamps to send a letter"),
 	ALREADY_CHECKED_IN(HttpStatus.CONFLICT, "Already checked in today"),
+	LETTER_IN_TRANSIT(HttpStatus.CONFLICT, "This letter hasn't arrived yet"),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
 
 	private final HttpStatus status;

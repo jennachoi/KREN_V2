@@ -16,11 +16,15 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.kren.IntegrationTestSupport;
+import com.kren.letter.LetterArrivalDispatcher;
 
 class NotificationApiTest extends IntegrationTestSupport {
 
 	@Autowired
 	SseHub hub;
+
+	@Autowired
+	LetterArrivalDispatcher dispatcher;
 
 	MockHttpSession mina;
 	MockHttpSession alex;
@@ -43,16 +47,23 @@ class NotificationApiTest extends IntegrationTestSupport {
 		hub.shutdown();
 	}
 
+	/** Takeoff: "a letter is coming" with the contents still sealed. Landing: "it's here", with a preview. */
 	@Test
-	void recipientGetsLiveEventAfterSend() throws Exception {
+	void recipientIsToldOnTakeoffAndAgainOnArrival() throws Exception {
 		MvcResult alexStream = openStream(alex);
 		assertThat(hub.connectionCount(alexId)).isEqualTo(1);
 		assertThat(body(alexStream)).contains("event:connected");
 
 		sendLetter(mina, alexId).andExpect(status().isCreated());
 
-		assertThat(body(alexStream)).contains("event:letter").contains("\"displayName\":\"mina\"")
-			.contains("\"preview\":\"Hello Alex\"");
+		assertThat(body(alexStream)).contains("event:incoming").contains("\"displayName\":\"mina\"")
+			.contains("\"preview\":null")
+			.doesNotContain("event:letter");
+
+		letLettersArrive();
+		dispatcher.dispatchAllDue();
+
+		assertThat(body(alexStream)).contains("event:letter").contains("\"preview\":\"Hello Alex\"");
 	}
 
 	@Test
@@ -62,8 +73,8 @@ class NotificationApiTest extends IntegrationTestSupport {
 
 		sendLetter(mina, alexId).andExpect(status().isCreated());
 
-		assertThat(body(eveStream)).doesNotContain("event:letter");
-		assertThat(body(minaStream)).as("sender is not notified of their own letter").doesNotContain("event:letter");
+		assertThat(body(eveStream)).doesNotContain("event:incoming");
+		assertThat(body(minaStream)).as("sender is not notified of their own letter").doesNotContain("event:incoming");
 	}
 
 	/** The event is AFTER_COMMIT, so a send that rolls back must not produce a phantom notification. */
@@ -74,7 +85,7 @@ class NotificationApiTest extends IntegrationTestSupport {
 
 		sendLetter(mina, alexId).andExpect(status().isConflict());
 
-		assertThat(body(alexStream)).doesNotContain("event:letter");
+		assertThat(body(alexStream)).doesNotContain("event:incoming");
 	}
 
 	@Test
@@ -84,8 +95,8 @@ class NotificationApiTest extends IntegrationTestSupport {
 
 		sendLetter(mina, alexId).andExpect(status().isCreated());
 
-		assertThat(body(tab1)).contains("event:letter");
-		assertThat(body(tab2)).contains("event:letter");
+		assertThat(body(tab1)).contains("event:incoming");
+		assertThat(body(tab2)).contains("event:incoming");
 	}
 
 	@Test

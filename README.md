@@ -1,6 +1,6 @@
 # KREN v2
 
-A language-exchange penpal platform: find people who speak the language you're learning, and write each other letters.
+**Slow letters, corrected by a friend.** Write to a native speaker of the language you're learning; your letter takes hours to fly across the map, and they reply *and* correct it sentence by sentence. Correcting someone else's letter is how you earn the stamps to send your own.
 
 A solo rebuild of [KREN](https://github.com/jennachoi/kren), a 2021 six-person bootcamp project (Java, Spring 5, JSP, Oracle).
 
