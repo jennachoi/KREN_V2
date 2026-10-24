@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kren.auth.dto.SignupRequest;
 import com.kren.common.ApiException;
 import com.kren.common.ErrorCode;
+import com.kren.stamp.StampService;
 import com.kren.user.User;
 import com.kren.user.UserRepository;
 import com.kren.user.UserService;
@@ -19,14 +20,18 @@ public class AuthService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final StampService stampService;
 
-	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, StampService stampService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.stampService = stampService;
 	}
 
+	/** Returns the new user's id. Account creation and the signup bonus commit or roll back together. */
+
 	@Transactional
-	public User signup(SignupRequest req) {
+	public long signup(SignupRequest req) {
 		UserService.requireDifferentLanguages(req.nativeLang(), req.learningLang());
 		String email = normalizeEmail(req.email());
 		// Fast path for the common case; the unique constraint below is what actually guarantees it.
@@ -36,12 +41,14 @@ public class AuthService {
 		User user = new User(email, passwordEncoder.encode(req.password()), req.displayName().strip(),
 				req.country(), req.nativeLang(), req.learningLang());
 		try {
-			return userRepository.saveAndFlush(user);
+			userRepository.saveAndFlush(user);
 		}
 		catch (DataIntegrityViolationException e) {
 			// Two concurrent signups with the same email: the loser hits uq_users_email.
 			throw new ApiException(ErrorCode.EMAIL_TAKEN);
 		}
+		stampService.grantSignupBonus(user.getId());
+		return user.getId();
 	}
 
 	static String normalizeEmail(String email) {

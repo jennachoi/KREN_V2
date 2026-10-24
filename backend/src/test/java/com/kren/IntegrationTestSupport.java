@@ -91,6 +91,14 @@ public abstract class IntegrationTestSupport {
 				userId(blockedEmail));
 	}
 
+	protected int stampBalance(String email) {
+		return jdbc.queryForObject("SELECT stamp_balance FROM users WHERE email = ?", Integer.class, email);
+	}
+
+	protected void setStampBalance(String email, int balance) {
+		jdbc.update("UPDATE users SET stamp_balance = ? WHERE email = ?", balance, email);
+	}
+
 	protected long interestId(String name) {
 		return jdbc.queryForObject("SELECT id FROM interests WHERE name = ?", Long.class, name);
 	}

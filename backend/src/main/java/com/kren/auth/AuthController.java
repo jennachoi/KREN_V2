@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kren.auth.dto.LoginRequest;
 import com.kren.auth.dto.SignupRequest;
-import com.kren.user.User;
 import com.kren.user.UserService;
 import com.kren.user.dto.MyProfileResponse;
 
@@ -43,12 +42,12 @@ public class AuthController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public MyProfileResponse signup(@Valid @RequestBody SignupRequest request, HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse) {
-		User user = authService.signup(request);
-		AuthUser principal = new AuthUser(user.getId(), user.getEmail(), null);
+		long userId = authService.signup(request);
+		AuthUser principal = new AuthUser(userId, AuthService.normalizeEmail(request.email()), null);
 		Authentication auth = UsernamePasswordAuthenticationToken.authenticated(principal, null,
 				principal.getAuthorities());
 		loginSessionManager.establish(auth, httpRequest, httpResponse);
-		return MyProfileResponse.from(user);
+		return userService.getMyProfile(userId);
 	}
 
 	@PostMapping("/login")
