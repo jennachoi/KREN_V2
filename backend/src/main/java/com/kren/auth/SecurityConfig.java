@@ -35,7 +35,7 @@ import com.kren.common.ErrorCode;
 /**
  * Session-cookie auth for a same-origin SPA. CSRF uses the double-submit cookie pattern
  * ({@code XSRF-TOKEN} cookie, echoed back in the {@code X-XSRF-TOKEN} header). Everything not
- * explicitly opened is denied.
+ * explicitly opened is denied; GETs outside /api and /actuator serve the bundled SPA.
  */
 @Configuration
 public class SecurityConfig {
@@ -50,6 +50,10 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/interests", "/actuator/health").permitAll()
 				.requestMatchers("/error").permitAll()
 				.requestMatchers("/api/**").authenticated()
+				.requestMatchers("/actuator/**").denyAll()
+				// The React app: static assets and client-side routes (see SpaConfig). Public on purpose;
+				// the data behind them is all under /api.
+				.requestMatchers(HttpMethod.GET, "/**").permitAll()
 				.anyRequest().denyAll())
 			.csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
 			.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)

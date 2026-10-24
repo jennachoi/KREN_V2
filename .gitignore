@@ -6,3 +6,6 @@
 .vscode/
 *.iml
 node_modules/
+
+# Frontend build output (bundled into the jar)
+backend/src/main/resources/static/

@@ -73,15 +73,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return asObject(problem(ErrorCode.VALIDATION_FAILED, ErrorCode.VALIDATION_FAILED.defaultMessage(), errors));
 	}
 
-	/** Framework-raised errors (malformed JSON, 405, 404 ...) get a {@code code} derived from the status. */
+	/**
+	 * Framework-raised errors (malformed JSON, 404, 405 ...) get a {@code code} derived from the status.
+	 * Hooked here rather than in handleExceptionInternal because for many of them the ProblemDetail
+	 * body is only created after that method runs.
+	 */
 	@Override
-	protected ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body, HttpHeaders headers,
+	protected ResponseEntity<Object> createResponseEntity(@Nullable Object body, HttpHeaders headers,
 			HttpStatusCode statusCode, WebRequest request) {
 		if (body instanceof ProblemDetail pd && (pd.getProperties() == null || !pd.getProperties().containsKey("code"))) {
 			HttpStatus resolved = HttpStatus.resolve(statusCode.value());
 			pd.setProperty("code", resolved != null ? resolved.name() : String.valueOf(statusCode.value()));
 		}
-		return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+		return super.createResponseEntity(body, headers, statusCode, request);
 	}
 
 	private static ResponseEntity<ProblemDetail> problem(ErrorCode code, String message,
