@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 
 import com.kren.auth.AuthService;
 import com.kren.auth.dto.SignupRequest;
+import com.kren.correction.CorrectionService;
+import com.kren.correction.dto.CorrectionRequest;
 import com.kren.letter.LetterService;
 import com.kren.user.Interest;
 import com.kren.user.InterestRepository;
@@ -67,15 +69,18 @@ class DemoDataSeeder implements ApplicationRunner {
 	private final AuthService authService;
 	private final UserService userService;
 	private final LetterService letterService;
+	private final CorrectionService correctionService;
 	private final UserRepository userRepository;
 	private final InterestRepository interestRepository;
 	private final JdbcTemplate jdbc;
 
 	DemoDataSeeder(AuthService authService, UserService userService, LetterService letterService,
-			UserRepository userRepository, InterestRepository interestRepository, JdbcTemplate jdbc) {
+			CorrectionService correctionService, UserRepository userRepository, InterestRepository interestRepository,
+			JdbcTemplate jdbc) {
 		this.authService = authService;
 		this.userService = userService;
 		this.letterService = letterService;
+		this.correctionService = correctionService;
 		this.userRepository = userRepository;
 		this.interestRepository = interestRepository;
 		this.jdbc = jdbc;
@@ -107,16 +112,25 @@ class DemoDataSeeder implements ApplicationRunner {
 				I saw you like travel too. I'm visiting Seoul next April for two weeks. \
 				Which neighborhoods would you recommend for someone who loves food and old streets?
 
+				저는 한국 음식을 너무 좋아 해요. 서울에 처음 가서 정말 설레요!
+
 				안녕히 계세요,
 				Emma""");
 		backdate(first.id(), 3);
+		// Minji marks up Emma's Korean (and earns a stamp for it), so the demo shows a correction.
+		correctionService.correct(minji, first.id(), new CorrectionRequest(List.of(
+				new CorrectionRequest.Line("저는 한국 음식을 너무 좋아 해요.", "저는 한국 음식을 정말 좋아해요.",
+						"좋아하다 is one word; 정말 sounds more natural than 너무 here"),
+				new CorrectionRequest.Line("서울에 처음 가서 정말 설레요!", "서울에 처음 가는 거라 정말 설레요!",
+						"-는 거라 = because it's my first time going")),
+				"Your Korean is really good! 😊"));
 		var answer = letterService.reply(minji, first.id(), """
 				Hi Emma! April is perfect, the cherry blossoms will be out.
 
 				For food and old streets, try Seochon near Gyeongbokgung, and Mangwon Market for snacks. \
 				Tell me what dishes you want to try and I'll find good places!
 
-				Your Korean greeting was perfect, by the way 😊
+				I corrected a couple of your Korean sentences — check the correction tab!
 				Minji""");
 		backdate(answer.id(), 2);
 		// Liam's letter is still in the air, so the tracking map has something to show.

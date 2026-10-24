@@ -83,7 +83,7 @@ public class LetterService {
 				now.plus(deliveryPolicy.travelTime(distanceKm))));
 		stampService.recordLetterSpend(senderId, letter.getId());
 		events.publishEvent(new LetterSentEvent(recipientId, LetterSummary.from(letter, recipientId, now)));
-		return LetterResponse.from(letter, senderId, now, locations);
+		return LetterResponse.from(letter, senderId, now, locations, false);
 	}
 
 	/**
@@ -95,7 +95,7 @@ public class LetterService {
 		Letter letter = loadVisible(viewerId, letterId);
 		Instant now = clock.instant();
 		letter.markReadBy(viewerId, now);
-		return LetterResponse.from(letter, viewerId, now, locations);
+		return LetterResponse.from(letter, viewerId, now, locations, letterRepository.hasCorrection(letterId));
 	}
 
 	@Transactional(readOnly = true)
@@ -113,7 +113,7 @@ public class LetterService {
 	}
 
 	/** 404 if it doesn't exist, 403 if it exists but isn't yours. */
-	Letter loadVisible(long userId, long letterId) {
+	public Letter loadVisible(long userId, long letterId) {
 		Letter letter = letterRepository.findById(letterId)
 			.orElseThrow(() -> new ApiException(ErrorCode.LETTER_NOT_FOUND));
 		if (!letter.isParticipant(userId)) {

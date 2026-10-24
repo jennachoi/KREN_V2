@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import com.kren.correction.CorrectionReceivedEvent;
 import com.kren.letter.LetterArrivedEvent;
 import com.kren.letter.LetterSentEvent;
 
@@ -34,6 +35,12 @@ class LetterNotificationListener {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	void onLetterArrived(LetterArrivedEvent event) {
 		push(event.recipientId(), "letter", event.letter());
+	}
+
+	/** "Your letter came back corrected." */
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	void onCorrectionReceived(CorrectionReceivedEvent event) {
+		push(event.writerId(), "correction", event.correction());
 	}
 
 	private void push(long userId, String eventName, Object payload) {

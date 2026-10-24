@@ -25,6 +25,7 @@ public class StampService {
 	public static final int SIGNUP_BONUS = 5;
 	public static final int CHECKIN_REWARD = 1;
 	public static final int LETTER_COST = 1;
+	public static final int CORRECTION_REWARD = 1;
 
 	private final UserRepository userRepository;
 	private final StampLedgerRepository ledgerRepository;
@@ -56,6 +57,16 @@ public class StampService {
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void recordLetterSpend(long userId, long letterId) {
 		ledgerRepository.save(new StampLedgerEntry(userId, -LETTER_COST, StampReason.SEND_LETTER, letterId));
+	}
+
+	/**
+	 * "Correct to earn": paid in the same transaction that saves the correction, whose one-per-letter
+	 * unique constraint guarantees this runs at most once per letter.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void rewardCorrection(long userId, long letterId) {
+		userRepository.addStamps(userId, CORRECTION_REWARD);
+		ledgerRepository.save(new StampLedgerEntry(userId, CORRECTION_REWARD, StampReason.CORRECTION, letterId));
 	}
 
 	@Transactional

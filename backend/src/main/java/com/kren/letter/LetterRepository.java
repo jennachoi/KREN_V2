@@ -43,4 +43,7 @@ public interface LetterRepository extends JpaRepository<Letter, Long> {
 	@EntityGraph(attributePaths = { "sender", "recipient" })
 	List<Letter> findByIdIn(Collection<Long> ids);
 
+	@Query(nativeQuery = true, value = "SELECT EXISTS (SELECT 1 FROM corrections WHERE letter_id = :letterId)")
+	boolean hasCorrection(@Param("letterId") long letterId);
+
 }

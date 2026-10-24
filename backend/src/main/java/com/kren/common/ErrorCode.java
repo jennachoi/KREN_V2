@@ -9,16 +9,19 @@ public enum ErrorCode {
 	INVALID_INTEREST(HttpStatus.BAD_REQUEST, "One or more interest ids do not exist"),
 	CANNOT_SEND_TO_SELF(HttpStatus.BAD_REQUEST, "You cannot send a letter to yourself"),
 	CANNOT_BLOCK_SELF(HttpStatus.BAD_REQUEST, "You cannot block yourself"),
+	INVALID_CORRECTION(HttpStatus.BAD_REQUEST, "Each corrected sentence must come from the letter and actually change it"),
 	UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Authentication required"),
 	BAD_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Invalid email or password"),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),
 	CSRF_INVALID(HttpStatus.FORBIDDEN, "CSRF token missing or invalid"),
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
 	LETTER_NOT_FOUND(HttpStatus.NOT_FOUND, "Letter not found"),
+	CORRECTION_NOT_FOUND(HttpStatus.NOT_FOUND, "This letter hasn't been corrected yet"),
 	EMAIL_TAKEN(HttpStatus.CONFLICT, "Email is already registered"),
 	INSUFFICIENT_STAMPS(HttpStatus.CONFLICT, "Not enough stamps to send a letter"),
 	ALREADY_CHECKED_IN(HttpStatus.CONFLICT, "Already checked in today"),
 	LETTER_IN_TRANSIT(HttpStatus.CONFLICT, "This letter hasn't arrived yet"),
+	ALREADY_CORRECTED(HttpStatus.CONFLICT, "This letter has already been corrected"),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
 
 	private final HttpStatus status;
