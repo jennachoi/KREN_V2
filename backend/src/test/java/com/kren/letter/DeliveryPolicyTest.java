@@ -11,21 +11,28 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class DeliveryPolicyTest {
 
-	@ParameterizedTest(name = "{0} km -> {1} h")
-	@CsvSource({ "0,1", "299,1", "300,4", "1999,4", "2000,8", "4000,12", "6000,16", "8000,20", "9999,20",
-			"10000,24", "19000,24" })
-	void followsTheV1DistanceTable(int km, int hours) {
-		assertThat(new DeliveryPolicy(1).travelTime(km)).isEqualTo(Duration.ofHours(hours));
+	@ParameterizedTest(name = "{0} km -> {1} min")
+	@CsvSource({ "0,120", "250,180", "1150,396", "8850,2244", "11000,2760", "20000,4320" })
+	void twoHoursPlusOneHourPer250KmCappedAt72h(int km, int minutes) {
+		assertThat(new DeliveryPolicy(1).travelTime(km)).isEqualTo(Duration.ofMinutes(minutes));
+	}
+
+	@Test
+	void growsSmoothlyWithDistance() {
+		var policy = new DeliveryPolicy(1);
+		// v1's table jumped 4 hours between 9,999 and 10,000 km; this never jumps more than a minute
+		assertThat(policy.travelTime(10_000).minus(policy.travelTime(9_999))).isLessThanOrEqualTo(Duration.ofMinutes(1));
 	}
 
 	@Test
 	void timeScaleCompressesFlights() {
-		assertThat(new DeliveryPolicy(60).travelTime(10_000)).isEqualTo(Duration.ofMinutes(24));
+		// 11,000 km = 46h real = 46 min at 60x
+		assertThat(new DeliveryPolicy(60).travelTime(11_000)).isEqualTo(Duration.ofMinutes(46));
 	}
 
 	@Test
 	void unknownDistanceUsesTheFallback() {
-		assertThat(new DeliveryPolicy(1).travelTime(null)).isEqualTo(Duration.ofHours(12));
+		assertThat(new DeliveryPolicy(1).travelTime(null)).isEqualTo(Duration.ofHours(24));
 	}
 
 	@Test

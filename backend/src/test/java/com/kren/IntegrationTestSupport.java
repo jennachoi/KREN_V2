@@ -114,9 +114,9 @@ public abstract class IntegrationTestSupport {
 		jdbc.update("UPDATE users SET stamp_balance = ? WHERE email = ?", balance, email);
 	}
 
-	/** Lets every letter in flight land (24h is the longest flight). */
+	/** Lets every letter in flight land (72h is the longest flight). */
 	protected void letLettersArrive() {
-		clock.advance(Duration.ofHours(25));
+		clock.advance(Duration.ofHours(73));
 	}
 
 	protected long interestId(String name) {

@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.jayway.jsonpath.JsonPath;
 import com.kren.IntegrationTestSupport;
 
-/** Seoul (KR) to Washington (US) is ~11,000 km: a 24-hour flight under the v1 table. */
+/** Seoul (KR) to Washington (US) is ~11,000 km: 2h handling + 1h per 250 km ≈ 46h. */
 class DeliveryApiTest extends IntegrationTestSupport {
 
 	@Autowired
@@ -53,25 +53,26 @@ class DeliveryApiTest extends IntegrationTestSupport {
 		assertThat(distance).isBetween(10_500, 11_500);
 		Duration flight = Duration.between(Instant.parse(JsonPath.read(json, "$.sentAt")),
 				Instant.parse(JsonPath.read(json, "$.deliverAt")));
-		assertThat(flight).isEqualTo(Duration.ofHours(24));
+		assertThat(flight).isEqualTo(DeliveryPolicy.realTravelTime(distance));
+		assertThat(flight).isBetween(Duration.ofHours(44), Duration.ofHours(48));
 	}
 
 	@Test
-	void sameCountryTakesAnHour() throws Exception {
+	void sameCountryTakesTwoHours() throws Exception {
 		signup("jun@example.com", "ko", "ja", "KR");
 		String json = send(mina, userId("jun@example.com"), "Hi neighbour").andReturn().getResponse().getContentAsString();
 		assertThat((int) JsonPath.read(json, "$.route.distanceKm")).isZero();
 		assertThat(Duration.between(Instant.parse(JsonPath.read(json, "$.sentAt")),
-				Instant.parse(JsonPath.read(json, "$.deliverAt")))).isEqualTo(Duration.ofHours(1));
+				Instant.parse(JsonPath.read(json, "$.deliverAt")))).isEqualTo(Duration.ofHours(2));
 	}
 
 	@Test
-	void unknownCountryFallsBackToTwelveHours() throws Exception {
+	void unknownCountryFallsBackToADay() throws Exception {
 		signup("sione@example.com", "en", "ko", "FJ"); // valid ISO code, not in the location table
 		String json = send(mina, userId("sione@example.com"), "Bula!").andReturn().getResponse().getContentAsString();
 		assertThat((Object) JsonPath.read(json, "$.route.distanceKm")).isNull();
 		assertThat(Duration.between(Instant.parse(JsonPath.read(json, "$.sentAt")),
-				Instant.parse(JsonPath.read(json, "$.deliverAt")))).isEqualTo(Duration.ofHours(12));
+				Instant.parse(JsonPath.read(json, "$.deliverAt")))).isEqualTo(Duration.ofHours(24));
 	}
 
 	@Test
@@ -92,7 +93,10 @@ class DeliveryApiTest extends IntegrationTestSupport {
 		assertThat(jdbc.queryForObject("SELECT read_at FROM letters WHERE id = ?", Instant.class, id))
 			.as("opening a sealed letter is not a read receipt").isNull();
 
-		clock.advance(Duration.ofHours(23).plusMinutes(59));
+		Instant deliverAt = Instant.parse(JsonPath.read(
+				mvc.perform(get("/api/letters/{id}", id).session(mina)).andReturn().getResponse().getContentAsString(),
+				"$.deliverAt"));
+		clock.advance(Duration.between(clock.instant(), deliverAt).minusMinutes(1));
 		mvc.perform(get("/api/letters/{id}", id).session(alex)).andExpect(jsonPath("$.body").value(nullValue()));
 
 		clock.advance(Duration.ofMinutes(1));

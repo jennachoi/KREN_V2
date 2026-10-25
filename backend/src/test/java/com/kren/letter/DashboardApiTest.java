@@ -59,7 +59,7 @@ class DashboardApiTest extends IntegrationTestSupport {
 		mvc.perform(get("/api/letters/dashboard").session(mina))
 			.andExpect(jsonPath("$.incoming.length()").value(0))
 			.andExpect(jsonPath("$.awaitingReplyCount").value(2))
-			.andExpect(jsonPath("$.awaitingReply[*].preview").value(contains("Hi from Canada", "Hi Mina"))); // newest arrival first (same ETA: later letter first)
+			.andExpect(jsonPath("$.awaitingReply[*].preview").value(contains("Hi Mina", "Hi from Canada"))); // newest arrival first: the US is farther than Canada, so it landed last
 
 		mvc.perform(post("/api/letters/{id}/reply", fromAlex).with(xsrf()).session(mina)
 			.contentType(MediaType.APPLICATION_JSON).content("{\"body\":\"Hi Alex!\"}"))
