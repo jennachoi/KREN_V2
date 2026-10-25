@@ -1,5 +1,6 @@
 package com.kren.user;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -32,6 +33,27 @@ class UserApiTest extends IntegrationTestSupport {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profileJson("ja", "[%d]".formatted(travel))))
 			.andExpect(jsonPath("$.interests[*].name").value(contains("Travel")));
+	}
+
+	@Test
+	void everyoneGetsAnAvatarAndCanPickFromTheSet() throws Exception {
+		MockHttpSession me = signup("mina@example.com", "ko", "en");
+		String assigned = jdbc.queryForObject("SELECT avatar FROM users", String.class);
+		assertThat(com.kren.user.Avatars.isAllowed(assigned)).isTrue();
+
+		mvc.perform(put("/api/users/me").with(xsrf()).session(me).contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"displayName":"Mina","country":"KR","nativeLang":"ko","learningLang":"en","interestIds":[],"avatar":"🦊"}
+					"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.avatar").value("🦊"));
+		mvc.perform(put("/api/users/me").with(xsrf()).session(me).contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"displayName":"Mina","country":"KR","nativeLang":"ko","learningLang":"en","interestIds":[],"avatar":"<script>"}
+					"""))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("INVALID_AVATAR"));
+		mvc.perform(get("/api/avatars")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(40));
 	}
 
 	@Test

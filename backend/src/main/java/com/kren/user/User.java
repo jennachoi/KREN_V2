@@ -47,6 +47,10 @@ public class User {
 	@Column(length = 500)
 	private String bio;
 
+	/** An emoji from {@link Avatars}. */
+	@Column(length = 16)
+	private String avatar;
+
 	/**
 	 * Mutated only through conditional SQL updates (see the stamp domain), never via this field, so
 	 * concurrent sends cannot overdraw it.
@@ -73,7 +77,12 @@ public class User {
 		this.country = country;
 		this.nativeLang = nativeLang;
 		this.learningLang = learningLang;
+		this.avatar = Avatars.random();
 		this.createdAt = Instant.now();
+	}
+
+	public void changeAvatar(String avatar) {
+		this.avatar = avatar;
 	}
 
 	public void updateProfile(String displayName, String country, String nativeLang, String learningLang,
@@ -117,6 +126,10 @@ public class User {
 
 	public String getBio() {
 		return bio;
+	}
+
+	public String getAvatar() {
+		return avatar;
 	}
 
 	public int getStampBalance() {

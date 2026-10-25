@@ -9,11 +9,11 @@ import com.kren.user.User;
 
 /** What other members may see: no email, no stamp balance. Also used for penpal search results. */
 public record PublicProfileResponse(Long id, String displayName, String country, String nativeLang,
-		String learningLang, String bio, List<InterestResponse> interests, Instant createdAt) {
+		String learningLang, String bio, List<InterestResponse> interests, Instant createdAt, String avatar) {
 
 	public static PublicProfileResponse from(User user) {
 		return new PublicProfileResponse(user.getId(), user.getDisplayName(), user.getCountry(), user.getNativeLang(),
-				user.getLearningLang(), user.getBio(), interestsOf(user), user.getCreatedAt());
+				user.getLearningLang(), user.getBio(), interestsOf(user), user.getCreatedAt(), user.getAvatar());
 	}
 
 	static List<InterestResponse> interestsOf(User user) {

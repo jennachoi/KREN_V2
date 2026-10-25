@@ -16,5 +16,7 @@ public record UpdateProfileRequest(
 		@NotNull @IsoCode(Kind.LANGUAGE) String nativeLang,
 		@NotNull @IsoCode(Kind.LANGUAGE) String learningLang,
 		@Size(max = 500) String bio,
-		@NotNull @Size(max = 10) Set<@NotNull Long> interestIds) {
+		@NotNull @Size(max = 10) Set<@NotNull Long> interestIds,
+		/** Optional: keeps the current avatar when null. */
+		String avatar) {
 }

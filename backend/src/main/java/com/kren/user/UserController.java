@@ -58,6 +58,11 @@ public class UserController {
 		return userService.findPenpals(me.id(), interestIds, page, size);
 	}
 
+	@GetMapping("/avatars")
+	public List<String> avatars() {
+		return userService.listAvatars();
+	}
+
 	@GetMapping("/interests")
 	public List<InterestResponse> interests() {
 		return userService.listInterests();

@@ -36,6 +36,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
 			      WHERE ui.user_id = u.id AND ui.interest_id IN (:interestIds))
 			""";
 
+	/**
+	 * A random penpal I've never exchanged a letter with (in either direction), for "send to a random
+	 * penpal". ORDER BY random() is fine at this scale; it sorts only the already-filtered candidates.
+	 */
+	@Query(nativeQuery = true, value = "SELECT u.id " + PENPAL_FROM_WHERE + """
+			  AND NOT EXISTS (
+			      SELECT 1 FROM letters l
+			      WHERE (l.sender_id = :meId AND l.recipient_id = u.id)
+			         OR (l.sender_id = u.id AND l.recipient_id = :meId))
+			ORDER BY random()
+			LIMIT 1
+			""")
+	Optional<Long> findRandomNewPenpal(@Param("meId") long meId, @Param("nativeLang") String nativeLang,
+			@Param("learningLang") String learningLang);
+
 	@Query(nativeQuery = true,
 			value = "SELECT u.* " + PENPAL_FROM_WHERE + " ORDER BY u.created_at DESC, u.id DESC",
 			countQuery = "SELECT count(*) " + PENPAL_FROM_WHERE)

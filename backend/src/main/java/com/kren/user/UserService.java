@@ -52,7 +52,13 @@ public class UserService {
 		if (interests.size() != req.interestIds().size()) {
 			throw new ApiException(ErrorCode.INVALID_INTEREST);
 		}
+		if (req.avatar() != null && !Avatars.isAllowed(req.avatar())) {
+			throw new ApiException(ErrorCode.INVALID_AVATAR);
+		}
 		User me = load(meId);
+		if (req.avatar() != null) {
+			me.changeAvatar(req.avatar());
+		}
 		me.updateProfile(req.displayName().strip(), req.country(), req.nativeLang(), req.learningLang(),
 				blankToNull(req.bio()), new HashSet<>(interests));
 		return MyProfileResponse.from(me);
@@ -66,6 +72,10 @@ public class UserService {
 				: userRepository.findPenpalsWithAnyInterest(meId, me.getNativeLang(), me.getLearningLang(),
 						interestIds, pageable);
 		return PageResponse.of(result, PublicProfileResponse::from);
+	}
+
+	public List<String> listAvatars() {
+		return Avatars.ALL;
 	}
 
 	public List<InterestResponse> listInterests() {

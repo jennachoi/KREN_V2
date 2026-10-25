@@ -34,14 +34,15 @@ class DemoDataSeederTest extends IntegrationTestSupport {
 		seeder.run(new DefaultApplicationArguments()); // e.g. an app restart
 
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE email LIKE '%@demo.kren'", Long.class))
-			.isEqualTo(6);
-		assertThat(jdbc.queryForObject("SELECT count(*) FROM letters", Long.class)).isEqualTo(3);
+			.isEqualTo(26);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE avatar IS NULL", Long.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM letters", Long.class)).isEqualTo(11);
 		// seeded through the real services, so stamps were actually spent
 		assertThat(stampBalance("minji@demo.kren")).as("5 - 1 reply + 1 correction").isEqualTo(5);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM corrections", Long.class)).isEqualTo(1);
-		// the Emma/Minji exchange has landed; Liam's letter is still in the air for the tracking map
+		// some letters have landed (and await replies), a few are still in the air for the maps
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM letters WHERE deliver_at > ?", Long.class,
-				java.sql.Timestamp.from(clock.instant()))).isEqualTo(1);
+				java.sql.Timestamp.from(clock.instant()))).isEqualTo(5);
 
 		mvc.perform(post("/api/auth/login")
 				.with(xsrf())

@@ -15,6 +15,8 @@ import com.kren.auth.AuthUser;
 import com.kren.common.PageResponse;
 import com.kren.letter.dto.Dashboard;
 import com.kren.letter.dto.LetterResponse;
+import com.kren.letter.dto.RandomLetterRequest;
+import com.kren.letter.dto.RandomQuotaResponse;
 import com.kren.letter.dto.LetterSummary;
 import com.kren.letter.dto.ReplyRequest;
 import com.kren.letter.dto.SendLetterRequest;
@@ -28,9 +30,11 @@ import jakarta.validation.constraints.Min;
 public class LetterController {
 
 	private final LetterService letterService;
+	private final RandomLetterService randomLetterService;
 
-	public LetterController(LetterService letterService) {
+	public LetterController(LetterService letterService, RandomLetterService randomLetterService) {
 		this.letterService = letterService;
+		this.randomLetterService = randomLetterService;
 	}
 
 	@PostMapping
@@ -49,6 +53,19 @@ public class LetterController {
 	@GetMapping("/{letterId}")
 	public LetterResponse read(@AuthenticationPrincipal AuthUser me, @PathVariable long letterId) {
 		return letterService.read(me.id(), letterId);
+	}
+
+	/** Sends to a random new penpal; the response reveals who it's flying to. */
+	@PostMapping("/random")
+	@ResponseStatus(HttpStatus.CREATED)
+	public LetterResponse sendRandom(@AuthenticationPrincipal AuthUser me,
+			@Valid @RequestBody RandomLetterRequest request) {
+		return randomLetterService.send(me.id(), request.body());
+	}
+
+	@GetMapping("/random/quota")
+	public RandomQuotaResponse randomQuota(@AuthenticationPrincipal AuthUser me) {
+		return randomLetterService.quota(me.id());
 	}
 
 	@GetMapping("/dashboard")

@@ -27,6 +27,8 @@ kren:
     # Divides every flight time (60 = an hour becomes a minute). 1 is the real product.
     time-scale: 1
     poll-interval: 5s
+  random-letters:
+    daily-limit: 3
 
 management:
   endpoints:
