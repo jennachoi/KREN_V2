@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
 import { ApiError } from '../api/client'
 import type { Interest } from '../api/types'
+import { useAvatarUri } from '../lib/avatar'
 import { flag } from '../lib/locale'
 
 type ButtonVariant = 'primary' | 'deep' | 'white' | 'grey'
@@ -78,16 +79,25 @@ function backgroundFor(seed: string) {
   return AVATAR_BACKGROUNDS[h % AVATAR_BACKGROUNDS.length]
 }
 
-/** Emoji profile picture on a pastel disc, with the country flag as a badge. Falls back to the initial. */
+/** Illustrated profile picture (or the initial as a fallback) on a disc, with the country flag as a badge. */
 export function Avatar({ name, country, avatar, size = 44 }: { name: string; country: string; avatar?: string | null; size?: number }) {
+  const uri = useAvatarUri(avatar)
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
+      {uri ? (
+        <img
+          src={uri}
+          alt=""
+          className="h-full w-full rounded-full border-[3px] border-white object-cover shadow-sm"
+        />
+      ) : (
       <div
         className={`flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br font-display font-semibold text-deep shadow-sm ${backgroundFor(avatar ?? name)}`}
-        style={{ fontSize: avatar ? size * 0.5 : size * 0.4 }}
+        style={{ fontSize: size * 0.4 }}
       >
-        {avatar ?? name.slice(0, 1).toUpperCase()}
+        {name.slice(0, 1).toUpperCase()}
       </div>
+      )}
       <span
         className="absolute -bottom-0.5 -left-0.5 flex items-center justify-center rounded-full bg-white leading-none shadow-sm"
         style={{ width: size * 0.42, height: size * 0.42, fontSize: size * 0.26 }}

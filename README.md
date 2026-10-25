@@ -21,3 +21,8 @@ cd backend
 ./mvnw spring-boot:run   # starts Postgres from ../compose.yaml automatically
 ./mvnw verify            # runs tests against a throwaway Postgres container
 ```
+
+## Credits
+
+- Profile pictures: [Avataaars](https://avataaars.com/) by Pablo Stanley (free for personal and commercial use), rendered with [DiceBear](https://www.dicebear.com/).
+- World map: [Natural Earth](https://www.naturalearthdata.com/) via [world-atlas](https://github.com/topojson/world-atlas).

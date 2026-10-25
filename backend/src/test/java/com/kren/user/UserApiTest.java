@@ -43,10 +43,10 @@ class UserApiTest extends IntegrationTestSupport {
 
 		mvc.perform(put("/api/users/me").with(xsrf()).session(me).contentType(MediaType.APPLICATION_JSON)
 			.content("""
-					{"displayName":"Mina","country":"KR","nativeLang":"ko","learningLang":"en","interestIds":[],"avatar":"🦊"}
+					{"displayName":"Mina","country":"KR","nativeLang":"ko","learningLang":"en","interestIds":[],"avatar":"m07"}
 					"""))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.avatar").value("🦊"));
+			.andExpect(jsonPath("$.avatar").value("m07"));
 		mvc.perform(put("/api/users/me").with(xsrf()).session(me).contentType(MediaType.APPLICATION_JSON)
 			.content("""
 					{"displayName":"Mina","country":"KR","nativeLang":"ko","learningLang":"en","interestIds":[],"avatar":"<script>"}

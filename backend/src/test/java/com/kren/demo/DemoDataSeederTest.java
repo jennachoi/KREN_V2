@@ -8,6 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import jakarta.persistence.EntityManager;
 
 import com.kren.IntegrationTestSupport;
 import com.kren.auth.AuthService;
@@ -23,15 +27,19 @@ class DemoDataSeederTest extends IntegrationTestSupport {
 	@Autowired UserService userService;
 	@Autowired LetterService letterService;
 	@Autowired CorrectionService correctionService;
+	@Autowired EntityManager entityManager;
+	@Autowired PlatformTransactionManager transactionManager;
 	@Autowired UserRepository userRepository;
 	@Autowired InterestRepository interestRepository;
 
 	@Test
 	void seedsOnceAndDemoAccountsCanLogIn() throws Exception {
 		var seeder = new DemoDataSeeder(authService, userService, letterService, correctionService, userRepository,
-				interestRepository, jdbc);
-		seeder.run(new DefaultApplicationArguments());
-		seeder.run(new DefaultApplicationArguments()); // e.g. an app restart
+				interestRepository, jdbc, entityManager);
+		// run() is @Transactional on the real bean; mirror that here since this instance isn't proxied
+		var tx = new TransactionTemplate(transactionManager);
+		tx.executeWithoutResult(s -> seeder.run(new DefaultApplicationArguments()));
+		tx.executeWithoutResult(s -> seeder.run(new DefaultApplicationArguments())); // e.g. an app restart
 
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE email LIKE '%@demo.kren'", Long.class))
 			.isEqualTo(26);

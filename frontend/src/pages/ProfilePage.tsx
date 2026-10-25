@@ -5,6 +5,7 @@ import { ApiError } from '../api/client'
 import { useAvatars, useBlock, useBlocks, useCheckIn, useInterests, useLedger, useMe, useUpdateProfile, useUser } from '../api/hooks'
 import type { MyProfile, PublicProfile } from '../api/types'
 import { Avatar, Button, Card, CardHead, Chips, ErrorText, Spinner } from '../components/ui'
+import { useAvatarUri } from '../lib/avatar'
 import { COUNTRIES, LANGUAGES, countryName, dayDate, languageName } from '../lib/locale'
 
 /** /users/:id — someone else's profile (or yours, if the id is you). */
@@ -286,6 +287,11 @@ function BlockedList() {
   )
 }
 
+function PresetImage({ preset }: { preset: string }) {
+  const uri = useAvatarUri(preset)
+  return uri ? <img src={uri} alt="" className="h-full w-full rounded-full" /> : <span className="block h-full w-full rounded-full bg-canvas" />
+}
+
 const MAX_BIO = 500
 const MAX_TOPICS = 10
 
@@ -388,18 +394,18 @@ function EditProfile({ me }: { me: MyProfile }) {
         <div className="space-y-5">
           <Card>
             <CardHead>Profile Picture</CardHead>
-            <div className="grid grid-cols-8 gap-1.5 p-4 sm:grid-cols-10">
+            <div className="grid grid-cols-6 gap-2 p-4 sm:grid-cols-8">
               {avatars.map((a) => (
                 <button
                   key={a}
                   type="button"
                   onClick={() => setForm({ ...form, avatar: a })}
-                  className={`flex aspect-square items-center justify-center rounded-full text-[20px] transition ${
-                    form.avatar === a ? 'bg-primary/15 ring-2 ring-primary' : 'hover:bg-canvas'
+                  className={`aspect-square rounded-full p-0.5 transition ${
+                    form.avatar === a ? 'ring-[3px] ring-primary' : 'hover:ring-2 hover:ring-line'
                   }`}
-                  aria-label={`Use ${a} as profile picture`}
+                  aria-label={`Use character ${a} as profile picture`}
                 >
-                  {a}
+                  <PresetImage preset={a} />
                 </button>
               ))}
             </div>
