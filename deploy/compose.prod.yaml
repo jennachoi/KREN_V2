@@ -1,0 +1,40 @@
+# Production stack on a single small VM: the app (image built by CI) behind Caddy, which terminates
+# TLS with an automatic Let's Encrypt certificate. The database is managed (Azure Database for
+# PostgreSQL), so it isn't in this file. Secrets come from deploy/.env on the server.
+services:
+  app:
+    image: ghcr.io/jennachoi/kren_v2:${KREN_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    # The VM has 1 GB of RAM; the JVM sizes its heap from this limit (MaxRAMPercentage=75).
+    mem_limit: 640m
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      KREN_DOMAIN: ${KREN_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    mem_limit: 96m
+
+volumes:
+  caddy_data:
+  caddy_config:
