@@ -1,11 +1,13 @@
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router'
 import { Mail } from 'lucide-react'
 import { ApiError } from '../api/client'
-import { useCheckIn, useMailbox, useMe, usePenpals } from '../api/hooks'
-import type { MyProfile } from '../api/types'
-import { Avatar, Card, CardHead, Spinner, StampIcon } from '../components/ui'
+import { useCheckIn, useDashboard, useMe, usePenpals } from '../api/hooks'
+import type { Flight, MyProfile } from '../api/types'
+import { Avatar, Card, CardHead, Spinner } from '../components/ui'
 import { matchedCount } from '../lib/domain'
-import { languageName, timeAgo } from '../lib/locale'
+import { countryName, languageName, timeAgo } from '../lib/locale'
+import { flightProgress, formatRemaining, useNow } from '../lib/time'
 
 /** v1 main page layout: left widgets, centre stream, right suggestions. */
 export function HomePage() {
@@ -28,8 +30,8 @@ export function HomePage() {
         </Card>
       </aside>
 
-      <section className="space-y-4">
-        <NewLetters />
+      <section className="min-w-0 space-y-4">
+        <LetterDashboard />
       </section>
 
       <aside className="space-y-5">
@@ -74,49 +76,143 @@ function DailyEvent() {
   )
 }
 
-function NewLetters() {
-  const { data, isLoading } = useMailbox('inbox', 0)
-  if (isLoading) return <Spinner />
-  const letters = data?.content ?? []
-  if (letters.length === 0) {
-    return (
-      <Card className="px-6 py-12 text-center">
-        <img src="/img/globe-people.svg" alt="" className="mx-auto w-44" />
-        <p className="mt-5 font-display text-[15px] text-ink">No letters yet.</p>
-        <p className="mt-1 text-[13px] text-muted">Find a penpal and write first — replies show up here.</p>
-        <Link to="/friends" className="mt-5 inline-block rounded-[4px] bg-primary px-5 py-2 text-[13px] text-white">
-          Find friends
-        </Link>
-      </Card>
-    )
-  }
+// The map pulls in d3-geo + world data; keep it out of the first page load.
+const AirspaceMap = lazy(() => import('../components/map/AirspaceMap').then((m) => ({ default: m.AirspaceMap })))
+
+/** Home dashboard: everything in the air on one map, then what's arriving, what's flying, what needs a reply. */
+function LetterDashboard() {
+  const { data, isLoading } = useDashboard()
+  const now = useNow(1000)
+  if (isLoading || !data) return <Spinner />
+
+  const flights = [...data.incoming, ...data.outgoing]
   return (
     <>
-      <div className="flex items-center justify-between px-1">
-        <h2 className="font-display text-[15px] font-medium">New letters</h2>
-        <Link to="/letters" className="text-[13px] text-primary hover:underline">
-          Open letter box
-        </Link>
+      <Card className="overflow-hidden">
+        <CardHead
+          right={
+            <span className="flex items-center gap-3 text-[11px]">
+              <Legend color="bg-[#f2786d]" label="Coming to you" />
+              <Legend color="bg-deep" label="On its way" />
+            </span>
+          }
+        >
+          Letters in the air
+        </CardHead>
+        <div className="relative">
+          <Suspense fallback={<div className="aspect-[800/380] bg-[#cfe6f7]" />}>
+            <AirspaceMap home={data.home} flights={flights} />
+          </Suspense>
+          {flights.length === 0 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 text-center">
+              <span className="rounded-full bg-white/90 px-4 py-1.5 text-[12px] text-soft shadow-sm">
+                No letters in the air right now — write one and watch it fly.
+              </span>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Tile n={data.incoming.length} label="Arriving soon" tone="text-[#e0645a]" />
+        <Tile n={data.outgoing.length} label="On its way" tone="text-deep" />
+        <Tile n={data.awaitingReplyCount} label="Awaiting your reply" tone="text-[#2aa79a]" />
       </div>
-      {letters.slice(0, 6).map((l) => (
-        <Link key={l.id} to={`/letters/${l.id}`} className="block">
-          <Card className="p-5 transition-shadow hover:shadow-md">
-            <div className="flex items-start gap-3">
-              <Avatar name={l.counterpart.displayName} country={l.counterpart.country} size={42} />
+
+      {data.incoming.length > 0 && (
+        <Card>
+          <CardHead>Arriving soon</CardHead>
+          {data.incoming.map((f) => (
+            <FlightRow key={f.id} flight={f} now={now} />
+          ))}
+        </Card>
+      )}
+
+      {data.outgoing.length > 0 && (
+        <Card>
+          <CardHead>Your letters on their way</CardHead>
+          {data.outgoing.map((f) => (
+            <FlightRow key={f.id} flight={f} now={now} />
+          ))}
+        </Card>
+      )}
+
+      <Card>
+        <CardHead right={data.awaitingReplyCount > data.awaitingReply.length ? `${data.awaitingReplyCount} total` : undefined}>
+          Awaiting your reply
+        </CardHead>
+        {data.awaitingReply.length === 0 ? (
+          <p className="px-5 py-5 text-[13px] text-muted">You're all caught up. ✉</p>
+        ) : (
+          data.awaitingReply.map((l) => (
+            <Link key={l.id} to={`/letters/${l.id}`} className="flex items-start gap-3 border-b border-line px-5 py-4 last:border-0 hover:bg-canvas">
+              <Avatar name={l.counterpart.displayName} country={l.counterpart.country} size={38} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className={`text-[14px] ${l.readAt ? 'text-ink' : 'font-semibold text-ink'}`}>{l.counterpart.displayName}</span>
+                  <span className={`text-[13px] ${l.readAt ? 'text-ink' : 'font-semibold text-ink'}`}>{l.counterpart.displayName}</span>
                   {!l.readAt && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                  <span className="ml-auto text-[11px] text-muted">arrived {timeAgo(l.deliverAt)} ago</span>
                 </div>
-                <span className="text-[12px] text-muted">{timeAgo(l.sentAt)}</span>
+                <p className="mt-0.5 line-clamp-2 text-[13px] text-[#666]">{l.preview}</p>
               </div>
-              <StampIcon className="h-9 w-9 opacity-80" />
-            </div>
-            <p className="mt-3 line-clamp-2 text-[14px] leading-relaxed text-[#555]">{l.preview}</p>
-          </Card>
-        </Link>
-      ))}
+              <span className="mt-1 shrink-0 rounded-[4px] border border-line px-2.5 py-1 text-[12px] text-primary">Reply</span>
+            </Link>
+          ))
+        )}
+      </Card>
     </>
+  )
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1 text-soft">
+      <span className={`h-2 w-2 rounded-full ${color}`} /> {label}
+    </span>
+  )
+}
+
+function Tile({ n, label, tone }: { n: number; label: string; tone: string }) {
+  return (
+    <Card className="px-4 py-3 text-center">
+      <div className={`font-display text-[24px] font-semibold ${tone}`}>{n}</div>
+      <div className="text-[11px] tracking-wide text-muted uppercase">{label}</div>
+    </Card>
+  )
+}
+
+function FlightRow({ flight, now }: { flight: Flight; now: number }) {
+  const incoming = flight.direction === 'INCOMING'
+  const progress = flightProgress(flight.sentAt, flight.deliverAt, now)
+  const left = new Date(flight.deliverAt).getTime() - now
+  return (
+    <Link to={`/letters/${flight.id}`} className="block border-b border-line px-5 py-3.5 last:border-0 hover:bg-canvas">
+      <div className="flex items-center gap-3">
+        <Avatar name={flight.counterpart.displayName} country={flight.counterpart.country} size={34} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] text-ink">
+            {incoming ? (
+              <>From <b className="font-medium">{flight.counterpart.displayName}</b></>
+            ) : (
+              <>To <b className="font-medium">{flight.counterpart.displayName}</b></>
+            )}
+            <span className="text-muted">
+              {' '}· {countryName(flight.route.from.country)} → {countryName(flight.route.to.country)}
+            </span>
+          </p>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#e6e9ef]">
+            <div
+              className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${incoming ? 'bg-[#f2786d]' : 'bg-deep'}`}
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        </div>
+        <div className="w-20 shrink-0 text-right">
+          <div className="text-[13px] font-medium text-ink">{formatRemaining(left)}</div>
+          <div className="text-[10px] text-muted">{incoming ? 'until it opens' : 'until delivery'}</div>
+        </div>
+      </div>
+    </Link>
   )
 }
 

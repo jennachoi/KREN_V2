@@ -12,7 +12,10 @@ import com.kren.block.BlockRepository;
 import com.kren.common.ApiException;
 import com.kren.common.ErrorCode;
 import com.kren.common.PageResponse;
+import com.kren.letter.dto.Dashboard;
+import com.kren.letter.dto.Flight;
 import com.kren.letter.dto.LetterResponse;
+import com.kren.letter.dto.Route;
 import com.kren.letter.dto.LetterSummary;
 import com.kren.stamp.StampService;
 import com.kren.user.User;
@@ -96,6 +99,26 @@ public class LetterService {
 		Instant now = clock.instant();
 		letter.markReadBy(viewerId, now);
 		return LetterResponse.from(letter, viewerId, now, locations, letterRepository.hasCorrection(letterId));
+	}
+
+	static final int DASHBOARD_FLIGHTS = 30;
+	static final int DASHBOARD_AWAITING = 10;
+
+	/** What's in the air for me right now, and what's waiting for my reply. */
+	@Transactional(readOnly = true)
+	public Dashboard dashboard(long me) {
+		Instant now = clock.instant();
+		var flights = letterRepository.findInFlight(me, now, PageRequest.of(0, DASHBOARD_FLIGHTS))
+			.stream()
+			.map(l -> Flight.from(l, me, locations))
+			.toList();
+		var awaiting = letterRepository.findAwaitingReply(me, now, PageRequest.of(0, DASHBOARD_AWAITING));
+		User user = userRepository.findById(me).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+		return new Dashboard(Route.Place.of(user.getCountry(), locations),
+				flights.stream().filter(f -> f.direction() == Flight.Direction.INCOMING).toList(),
+				flights.stream().filter(f -> f.direction() == Flight.Direction.OUTGOING).toList(),
+				awaiting.getContent().stream().map(l -> LetterSummary.from(l, me, now)).toList(),
+				awaiting.getTotalElements());
 	}
 
 	@Transactional(readOnly = true)

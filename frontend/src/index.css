@@ -26,3 +26,15 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
 }
+
+/* Login background dots: each floats back and forth along its own direction (--dx/--dy). */
+@keyframes drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(var(--dx), var(--dy)); }
+}
+.drift {
+  animation: drift 10s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drift { animation: none; }
+}

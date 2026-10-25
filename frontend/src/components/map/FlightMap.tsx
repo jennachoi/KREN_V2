@@ -1,22 +1,14 @@
 import { useMemo } from 'react'
 import { geoDistance, geoInterpolate, geoNaturalEarth1, geoPath, geoGraticule10 } from 'd3-geo'
-import { feature, mesh } from 'topojson-client'
-import type { Feature, FeatureCollection, LineString } from 'geojson'
-import type { GeometryCollection, Topology } from 'topojson-specification'
-import countries110m from 'world-atlas/countries-110m.json'
+import type { Feature, LineString } from 'geojson'
 import type { Route } from '../../api/types'
 import { countryName } from '../../lib/locale'
+import { BORDERS, LAND, type LngLat } from './geo'
 import { PaperPlane } from './PaperPlane'
-
-const topology = countries110m as unknown as Topology<{ countries: GeometryCollection }>
-const LAND = feature(topology, topology.objects.countries) as FeatureCollection
-const BORDERS = mesh(topology, topology.objects.countries, (a, b) => a !== b)
 
 const W = 800
 const H = 420
 const SAMPLES = 96
-
-type LngLat = [number, number]
 
 /**
  * World map with the letter's great-circle route. The plane sits at `progress` (0..1) along the arc,
@@ -116,7 +108,7 @@ export function FlightMap({ route, progress }: { route: Route; progress: number 
   )
 }
 
-function Pin({ x, y, label, dim = false, below = false }: { x: number; y: number; label: string; dim?: boolean; below?: boolean }) {
+export function Pin({ x, y, label, dim = false, below = false }: { x: number; y: number; label: string; dim?: boolean; below?: boolean }) {
   const width = Math.max(64, label.length * 7.4 + 20)
   return (
     <g transform={`translate(${x} ${y})`} opacity={dim ? 0.85 : 1}>

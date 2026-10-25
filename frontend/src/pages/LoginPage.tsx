@@ -1,12 +1,26 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { useLogin, useMe } from '../api/hooks'
 import { ErrorText } from '../components/ui'
 
-// Scattered dots behind the split, like the v1 landing. Fixed positions so it doesn't reshuffle.
+// Scattered dots behind the split, like the v1 landing, each drifting slowly in its own direction.
+// Pseudo-random but fixed per dot so the layout doesn't reshuffle on every render.
 const DOTS = Array.from({ length: 70 }, (_, i) => {
   const r = (n: number) => ((Math.sin(i * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1
-  return { left: r(1) * 100, top: r(2) * 100, size: 3 + r(3) * 7, opacity: 0.35 + r(4) * 0.55 }
+  const angle = r(5) * Math.PI * 2
+  const reach = 20 + r(6) * 50
+  return {
+    left: r(1) * 100,
+    top: r(2) * 100,
+    size: 3 + r(3) * 7,
+    opacity: 0.35 + r(4) * 0.55,
+    drift: {
+      '--dx': `${Math.cos(angle) * reach}px`,
+      '--dy': `${Math.sin(angle) * reach}px`,
+      animationDuration: `${7 + r(7) * 9}s`,
+      animationDelay: `${-r(8) * 10}s`,
+    } as CSSProperties,
+  }
 })
 
 const pill =
@@ -32,8 +46,8 @@ export function LoginPage() {
       {DOTS.map((d, i) => (
         <span
           key={i}
-          className="absolute rounded-full bg-primary"
-          style={{ left: `${d.left}%`, top: `${d.top}%`, width: d.size, height: d.size, opacity: d.opacity }}
+          className="drift absolute rounded-full bg-primary"
+          style={{ left: `${d.left}%`, top: `${d.top}%`, width: d.size, height: d.size, opacity: d.opacity, ...d.drift }}
         />
       ))}
       <div
@@ -43,8 +57,8 @@ export function LoginPage() {
         {DOTS.slice(0, 35).map((d, i) => (
           <span
             key={i}
-            className="absolute rounded-full bg-[#4f86d4]"
-            style={{ left: `${(d.left + 37) % 100}%`, top: `${(d.top + 51) % 100}%`, width: d.size, height: d.size }}
+            className="drift absolute rounded-full bg-[#4f86d4]"
+            style={{ left: `${(d.left + 37) % 100}%`, top: `${(d.top + 51) % 100}%`, width: d.size, height: d.size, ...d.drift }}
           />
         ))}
       </div>

@@ -66,7 +66,7 @@ function Navbar({ name, country, notices }: { name: string; country: string; not
         </nav>
         <div className="ml-auto flex items-center gap-4 text-ink">
           <NotificationBell {...notices} />
-          <Link to="/letters" title="Letters" className="text-[#555] hover:text-primary">
+          <Link to="/letters" title="Letters" className="flex text-[#555] hover:text-primary">
             <Mail size={18} strokeWidth={1.6} />
           </Link>
           <AccountMenu name={name} country={country} />
@@ -94,10 +94,10 @@ function NotificationBell({ items, unseen, markSeen, clear }: ReturnType<typeof 
   const navigate = useNavigate()
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative flex">
       <button
         title="Notifications"
-        className="relative text-[#555] hover:text-primary"
+        className="relative flex text-[#555] hover:text-primary"
         onClick={() => {
           setOpen((o) => !o)
           markSeen()

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kren.auth.AuthUser;
 import com.kren.common.PageResponse;
+import com.kren.letter.dto.Dashboard;
 import com.kren.letter.dto.LetterResponse;
 import com.kren.letter.dto.LetterSummary;
 import com.kren.letter.dto.ReplyRequest;
@@ -48,6 +49,11 @@ public class LetterController {
 	@GetMapping("/{letterId}")
 	public LetterResponse read(@AuthenticationPrincipal AuthUser me, @PathVariable long letterId) {
 		return letterService.read(me.id(), letterId);
+	}
+
+	@GetMapping("/dashboard")
+	public Dashboard dashboard(@AuthenticationPrincipal AuthUser me) {
+		return letterService.dashboard(me.id());
 	}
 
 	@GetMapping("/inbox")

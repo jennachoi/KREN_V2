@@ -5,6 +5,7 @@ import type {
   CheckinResult,
   Correction,
   CorrectionLine,
+  Dashboard,
   Interest,
   LedgerEntry,
   Letter,
@@ -82,6 +83,15 @@ export function useLetter(id: number) {
       return letter
     },
     retry: false,
+  })
+}
+
+/** Under the 'letters' key so SSE takeoff/arrival events refresh it along with the mailboxes. */
+export function useDashboard() {
+  return useQuery({
+    queryKey: ['letters', 'dashboard'],
+    queryFn: () => api<Dashboard>('/api/letters/dashboard'),
+    refetchInterval: 60_000,
   })
 }
 

@@ -43,6 +43,29 @@ public interface LetterRepository extends JpaRepository<Letter, Long> {
 	@EntityGraph(attributePaths = { "sender", "recipient" })
 	List<Letter> findByIdIn(Collection<Long> ids);
 
+	/** Letters to or from me that are still in the air, soonest arrival first. */
+	@EntityGraph(attributePaths = { "sender", "recipient" })
+	@Query("""
+			SELECT l FROM Letter l
+			WHERE (l.sender.id = :me OR l.recipient.id = :me) AND l.deliverAt > :now
+			ORDER BY l.deliverAt ASC, l.id ASC
+			""")
+	List<Letter> findInFlight(@Param("me") long me, @Param("now") Instant now, Pageable pageable);
+
+	/** Letters that reached me and that I haven't answered (no reply of mine points at them). */
+	@EntityGraph(attributePaths = "sender")
+	@Query(value = """
+			SELECT l FROM Letter l
+			WHERE l.recipient.id = :me AND l.deliverAt <= :now
+			  AND NOT EXISTS (SELECT 1 FROM Letter r WHERE r.parent = l AND r.sender.id = :me)
+			ORDER BY l.deliverAt DESC, l.id DESC
+			""", countQuery = """
+			SELECT count(l) FROM Letter l
+			WHERE l.recipient.id = :me AND l.deliverAt <= :now
+			  AND NOT EXISTS (SELECT 1 FROM Letter r WHERE r.parent = l AND r.sender.id = :me)
+			""")
+	Page<Letter> findAwaitingReply(@Param("me") long me, @Param("now") Instant now, Pageable pageable);
+
 	@Query(nativeQuery = true, value = "SELECT EXISTS (SELECT 1 FROM corrections WHERE letter_id = :letterId)")
 	boolean hasCorrection(@Param("letterId") long letterId);
 

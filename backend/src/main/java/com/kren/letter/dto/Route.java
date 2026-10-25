@@ -8,7 +8,7 @@ public record Route(Place from, Place to, Integer distanceKm) {
 
 	public record Place(String country, Double lat, Double lng) {
 
-		static Place of(String country, CountryLocations locations) {
+		public static Place of(String country, CountryLocations locations) {
 			return locations.find(country)
 				.map(l -> new Place(country, l.lat(), l.lng()))
 				.orElse(new Place(country, null, null));

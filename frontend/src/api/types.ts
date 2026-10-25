@@ -82,6 +82,23 @@ export interface LetterSummary {
   readAt: string | null
 }
 
+export interface Flight {
+  id: number
+  direction: 'INCOMING' | 'OUTGOING'
+  counterpart: UserSummary
+  sentAt: string
+  deliverAt: string
+  route: Route
+}
+
+export interface Dashboard {
+  home: Place
+  incoming: Flight[]
+  outgoing: Flight[]
+  awaitingReply: LetterSummary[]
+  awaitingReplyCount: number
+}
+
 export interface CorrectionLine {
   original: string
   corrected: string
