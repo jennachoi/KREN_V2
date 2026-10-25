@@ -16,6 +16,7 @@ export interface MyProfile {
   interests: Interest[]
   stampBalance: number
   createdAt: string
+  avatar: string | null
 }
 
 export interface PublicProfile {
@@ -27,6 +28,7 @@ export interface PublicProfile {
   bio: string | null
   interests: Interest[]
   createdAt: string
+  avatar: string | null
 }
 
 export interface UserSummary {
@@ -34,6 +36,7 @@ export interface UserSummary {
   displayName: string
   country: string
   nativeLang: string
+  avatar: string | null
 }
 
 export interface Page<T> {

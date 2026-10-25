@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { Clock3, Navigation, Stamp } from 'lucide-react'
 import type { Letter } from '../api/types'
 import { countryName, letterDate } from '../lib/locale'
-import { flightProgress, formatRemaining, useNow } from '../lib/time'
+import { flightProgress, formatRemaining, LIVE_TICK_MS, useNow } from '../lib/time'
 import { FlightMap } from './map/FlightMap'
 import { PaperPlane } from './map/PaperPlane'
 
@@ -12,7 +12,7 @@ import { PaperPlane } from './map/PaperPlane'
  * the (now unsealed) letter.
  */
 export function Tracker({ letter, mine, onArrive }: { letter: Letter; mine: boolean; onArrive?: () => void }) {
-  const now = useNow(1000)
+  const now = useNow(LIVE_TICK_MS)
   const progress = flightProgress(letter.sentAt, letter.deliverAt, now)
   const remaining = new Date(letter.deliverAt).getTime() - now
   const arrivedRef = useRef(false)
@@ -45,7 +45,7 @@ export function Tracker({ letter, mine, onArrive }: { letter: Letter; mine: bool
           </div>
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e6e9ef]">
-          <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
+          <div className="h-full rounded-full bg-primary transition-[width] duration-[15000ms] ease-linear" style={{ width: `${progress * 100}%` }} />
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-[13px]">
           <Stat icon={<Clock3 size={16} />} value={formatRemaining(remaining)} label="Est. delivery time" />

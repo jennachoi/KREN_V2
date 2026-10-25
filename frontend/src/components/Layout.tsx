@@ -32,15 +32,25 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <Navbar name={me.displayName} country={me.country} notices={notices} />
-      <main className="mx-auto max-w-[1040px] px-4 py-7">
+      <Navbar name={me.displayName} country={me.country} avatar={me.avatar} notices={notices} />
+      <main className="mx-auto max-w-[1280px] px-4 py-7">
         <Outlet />
       </main>
     </div>
   )
 }
 
-function Navbar({ name, country, notices }: { name: string; country: string; notices: ReturnType<typeof useLetterNotifications> }) {
+function Navbar({
+  name,
+  country,
+  avatar,
+  notices,
+}: {
+  name: string
+  country: string
+  avatar: string | null
+  notices: ReturnType<typeof useLetterNotifications>
+}) {
   const link = ({ isActive }: { isActive: boolean }) =>
     `font-display text-[15px] tracking-wide transition-colors ${isActive ? 'text-primary' : 'text-[#999] hover:text-ink'}`
 
@@ -69,7 +79,7 @@ function Navbar({ name, country, notices }: { name: string; country: string; not
           <Link to="/letters" title="Letters" className="flex text-[#555] hover:text-primary">
             <Mail size={18} strokeWidth={1.6} />
           </Link>
-          <AccountMenu name={name} country={country} />
+          <AccountMenu name={name} country={country} avatar={avatar} />
         </div>
       </div>
     </header>
@@ -146,7 +156,7 @@ function NotificationBell({ items, unseen, markSeen, clear }: ReturnType<typeof 
   )
 }
 
-function AccountMenu({ name, country }: { name: string; country: string }) {
+function AccountMenu({ name, country, avatar }: { name: string; country: string; avatar: string | null }) {
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
   const navigate = useNavigate()
@@ -155,7 +165,7 @@ function AccountMenu({ name, country }: { name: string; country: string }) {
   return (
     <div ref={ref} className="relative">
       <button className="flex items-center gap-2" onClick={() => setOpen((o) => !o)}>
-        <Avatar name={name} country={country} size={30} />
+        <Avatar name={name} country={country} avatar={avatar} size={30} />
         <span className="text-[13px] text-ink">{name}</span>
       </button>
       {open && (

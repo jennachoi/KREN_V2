@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { ArrowLeftRight, MapPin } from 'lucide-react'
 import { ApiError } from '../api/client'
-import { useBlock, useBlocks, useCheckIn, useInterests, useLedger, useMe, useUpdateProfile, useUser } from '../api/hooks'
+import { useAvatars, useBlock, useBlocks, useCheckIn, useInterests, useLedger, useMe, useUpdateProfile, useUser } from '../api/hooks'
 import type { MyProfile, PublicProfile } from '../api/types'
 import { Avatar, Button, Card, CardHead, Chips, ErrorText, Spinner } from '../components/ui'
 import { COUNTRIES, LANGUAGES, countryName, dayDate, languageName } from '../lib/locale'
@@ -39,7 +39,7 @@ function ProfileHeader({
   actions,
   stats,
 }: {
-  person: { displayName: string; country: string; nativeLang: string; learningLang: string }
+  person: { displayName: string; country: string; nativeLang: string; learningLang: string; avatar: string | null }
   stampBalance?: number
   actions: ReactNode
   stats: ReactNode
@@ -73,7 +73,7 @@ function ProfileHeader({
         </div>
         <div className="order-1 -mt-24 text-center md:order-2 md:-mt-20">
           <div className="flex justify-center">
-            <Avatar name={person.displayName} country={person.country} size={96} />
+            <Avatar name={person.displayName} country={person.country} avatar={person.avatar} size={96} />
           </div>
           <h1 className="mt-2 font-display text-[22px] text-ink">{person.displayName}</h1>
         </div>
@@ -275,7 +275,7 @@ function BlockedList() {
       <CardHead>Blocked</CardHead>
       {data.content.map((b) => (
         <div key={b.user.id} className="flex items-center gap-3 border-b border-line px-5 py-3 last:border-0">
-          <Avatar name={b.user.displayName} country={b.user.country} size={32} />
+          <Avatar name={b.user.displayName} country={b.user.country} avatar={b.user.avatar} size={32} />
           <span className="flex-1 text-[13px]">{b.user.displayName}</span>
           <Button variant="white" className="px-3 py-1 text-[12px]" onClick={() => block.mutate({ userId: b.user.id, block: false })}>
             Unblock
@@ -300,7 +300,9 @@ function EditProfile({ me }: { me: MyProfile }) {
     learningLang: me.learningLang,
     bio: me.bio ?? '',
     interestIds: me.interests.map((i) => i.id),
+    avatar: me.avatar,
   })
+  const { data: avatars = [] } = useAvatars()
   const set = (k: 'displayName' | 'country' | 'nativeLang' | 'learningLang' | 'bio') => (e: { target: { value: string } }) =>
     setForm({ ...form, [k]: e.target.value })
   const toggle = (id: number) =>
@@ -321,7 +323,7 @@ function EditProfile({ me }: { me: MyProfile }) {
   return (
     <div className="mx-auto max-w-[900px] space-y-5">
       <ProfileHeader
-        person={{ ...me, displayName: form.displayName || me.displayName }}
+        person={{ ...me, displayName: form.displayName || me.displayName, avatar: form.avatar }}
         stampBalance={me.stampBalance}
         stats={<Stat label="Topics" value={form.interestIds.length} />}
         actions={
@@ -384,6 +386,24 @@ function EditProfile({ me }: { me: MyProfile }) {
           {err?.fieldError('displayName') && <p className="px-5 pb-3 text-[12px] text-coral">{err.fieldError('displayName')}</p>}
         </Card>
         <div className="space-y-5">
+          <Card>
+            <CardHead>Profile Picture</CardHead>
+            <div className="grid grid-cols-8 gap-1.5 p-4 sm:grid-cols-10">
+              {avatars.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setForm({ ...form, avatar: a })}
+                  className={`flex aspect-square items-center justify-center rounded-full text-[20px] transition ${
+                    form.avatar === a ? 'bg-primary/15 ring-2 ring-primary' : 'hover:bg-canvas'
+                  }`}
+                  aria-label={`Use ${a} as profile picture`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </Card>
           <Card>
             <CardHead right={`(${form.bio.length} / ${MAX_BIO})`}>About Me</CardHead>
             <textarea

@@ -100,7 +100,7 @@ function FriendCard({ me, p }: { me: MyProfile; p: PublicProfile }) {
     <Link to={`/users/${p.id}`} className="block">
       <Card className="px-4 pt-6 pb-4 text-center transition-shadow hover:shadow-md">
         <div className="flex justify-center">
-          <Avatar name={p.displayName} country={p.country} size={72} />
+          <Avatar name={p.displayName} country={p.country} avatar={p.avatar} size={72} />
         </div>
         <div className="mt-2 font-display text-[16px] font-medium text-ink">{p.displayName}</div>
         <div className="mt-0.5 flex items-center justify-center gap-1 text-[12px] text-muted">

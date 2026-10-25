@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
 import { Layout } from './components/Layout'
-import { ComposePage } from './pages/ComposePage'
+import { ComposePage, RandomComposePage } from './pages/ComposePage'
 import { FriendsPage } from './pages/FriendsPage'
 import { HomePage } from './pages/HomePage'
 import { LettersPage } from './pages/LettersPage'
@@ -28,6 +28,7 @@ const router = createBrowserRouter([
       { path: '/users/:id', element: <UserProfilePage /> },
       { path: '/profile', element: <MyProfilePage /> },
       { path: '/profile/edit', element: <MyProfilePage edit /> },
+      { path: '/compose/random', element: <RandomComposePage /> },
       { path: '/compose/:userId', element: <ComposePage /> },
       { path: '/letters', element: <LettersPage key="inbox" box="inbox" /> },
       { path: '/letters/sent', element: <LettersPage key="sent" box="sent" /> },

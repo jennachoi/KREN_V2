@@ -2,19 +2,19 @@ import { lazy, Suspense } from 'react'
 import { Link } from 'react-router'
 import { Mail } from 'lucide-react'
 import { ApiError } from '../api/client'
-import { useCheckIn, useDashboard, useMe, usePenpals } from '../api/hooks'
+import { useCheckIn, useDashboard, useMe, usePenpals, useRandomQuota } from '../api/hooks'
 import type { Flight, MyProfile } from '../api/types'
 import { Avatar, Card, CardHead, Spinner } from '../components/ui'
 import { matchedCount } from '../lib/domain'
 import { countryName, languageName, timeAgo } from '../lib/locale'
-import { flightProgress, formatRemaining, useNow } from '../lib/time'
+import { flightProgress, formatRemaining, LIVE_TICK_MS, useNow } from '../lib/time'
 
 /** v1 main page layout: left widgets, centre stream, right suggestions. */
 export function HomePage() {
   const { data: me } = useMe()
   if (!me) return <Spinner />
   return (
-    <div className="grid gap-5 lg:grid-cols-[240px_1fr_240px]">
+    <div className="grid gap-5 lg:grid-cols-[210px_minmax(0,1fr)_230px] xl:grid-cols-[230px_minmax(0,1fr)_250px]">
       <aside className="space-y-5">
         <DailyEvent />
         <Card>
@@ -36,19 +36,38 @@ export function HomePage() {
 
       <aside className="space-y-5">
         <Suggestions me={me} />
-        <div className="relative overflow-hidden rounded-[6px] bg-teal px-5 py-8 text-center text-white">
-          <img src="/img/globe-people.svg" alt="" className="mx-auto mb-3 w-28 opacity-90" />
-          <p className="font-display text-[14px] leading-snug font-medium">
-            Find a native {languageName(me.learningLang)} speaker and send them your first letter.
-          </p>
-          <Link
-            to="/friends"
-            className="mt-4 inline-block rounded-[4px] border border-white/80 px-4 py-1.5 text-[12px] font-medium hover:bg-white/10"
-          >
-            ✍ Write a letter
-          </Link>
-        </div>
+        <RandomLetterCard learning={me.learningLang} />
       </aside>
+    </div>
+  )
+}
+
+/** Teal call-to-action: write to a random new penpal (a few per day). */
+function RandomLetterCard({ learning }: { learning: string }) {
+  const { data: quota } = useRandomQuota()
+  const left = quota?.remaining ?? 0
+  return (
+    <div className="relative overflow-hidden rounded-[6px] bg-teal px-5 py-7 text-center text-white">
+      <img src="/img/globe-people.svg" alt="" className="mx-auto mb-3 w-28 opacity-90" />
+      <p className="font-display text-[14px] leading-snug font-medium">
+        Send a letter to a random native {languageName(learning)} speaker.
+      </p>
+      <p className="mt-1 text-[12px] text-white/85">Someone new, chosen for you — it might be the start of something.</p>
+      {left > 0 ? (
+        <Link
+          to="/compose/random"
+          className="mt-4 inline-block rounded-[4px] border border-white/80 px-4 py-1.5 text-[12px] font-medium hover:bg-white/10"
+        >
+          ✈ Send a random letter
+        </Link>
+      ) : (
+        <span className="mt-4 inline-block rounded-[4px] bg-white/15 px-4 py-1.5 text-[12px]">Come back tomorrow ✈</span>
+      )}
+      {quota && (
+        <p className="mt-2 text-[11px] text-white/80">
+          {left} of {quota.limit} left today
+        </p>
+      )}
     </div>
   )
 }
@@ -82,7 +101,7 @@ const AirspaceMap = lazy(() => import('../components/map/AirspaceMap').then((m) 
 /** Home dashboard: everything in the air on one map, then what's arriving, what's flying, what needs a reply. */
 function LetterDashboard() {
   const { data, isLoading } = useDashboard()
-  const now = useNow(1000)
+  const now = useNow(LIVE_TICK_MS)
   if (isLoading || !data) return <Spinner />
 
   const flights = [...data.incoming, ...data.outgoing]
@@ -146,7 +165,7 @@ function LetterDashboard() {
         ) : (
           data.awaitingReply.map((l) => (
             <Link key={l.id} to={`/letters/${l.id}`} className="flex items-start gap-3 border-b border-line px-5 py-4 last:border-0 hover:bg-canvas">
-              <Avatar name={l.counterpart.displayName} country={l.counterpart.country} size={38} />
+              <Avatar name={l.counterpart.displayName} country={l.counterpart.country} avatar={l.counterpart.avatar} size={38} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className={`text-[13px] ${l.readAt ? 'text-ink' : 'font-semibold text-ink'}`}>{l.counterpart.displayName}</span>
@@ -188,7 +207,7 @@ function FlightRow({ flight, now }: { flight: Flight; now: number }) {
   return (
     <Link to={`/letters/${flight.id}`} className="block border-b border-line px-5 py-3.5 last:border-0 hover:bg-canvas">
       <div className="flex items-center gap-3">
-        <Avatar name={flight.counterpart.displayName} country={flight.counterpart.country} size={34} />
+        <Avatar name={flight.counterpart.displayName} country={flight.counterpart.country} avatar={flight.counterpart.avatar} size={34} />
         <div className="min-w-0 flex-1">
           <p className="text-[13px] text-ink">
             {incoming ? (
@@ -202,7 +221,7 @@ function FlightRow({ flight, now }: { flight: Flight; now: number }) {
           </p>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#e6e9ef]">
             <div
-              className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${incoming ? 'bg-[#f2786d]' : 'bg-deep'}`}
+              className={`h-full rounded-full transition-[width] duration-[15000ms] ease-linear ${incoming ? 'bg-[#f2786d]' : 'bg-deep'}`}
               style={{ width: `${progress * 100}%` }}
             />
           </div>
@@ -228,7 +247,7 @@ function Suggestions({ me }: { me: MyProfile }) {
         people.map((p) => (
           <div key={p.id} className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-0">
             <Link to={`/users/${p.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-              <Avatar name={p.displayName} country={p.country} size={36} />
+              <Avatar name={p.displayName} country={p.country} avatar={p.avatar} size={36} />
               <span className="min-w-0">
                 <span className="block truncate text-[13px] text-ink">{p.displayName}</span>
                 <span className="block text-[11px] text-muted">Matched : {matchedCount(me, p)}</span>

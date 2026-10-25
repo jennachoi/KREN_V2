@@ -4,7 +4,7 @@ import { geoGraticule10, geoInterpolate, geoNaturalEarth1, geoPath } from 'd3-ge
 import type { Feature, LineString, MultiPoint } from 'geojson'
 import type { Flight, Place } from '../../api/types'
 import { countryName } from '../../lib/locale'
-import { flightProgress, useNow } from '../../lib/time'
+import { flightProgress, LIVE_TICK_MS, useNow } from '../../lib/time'
 import { BORDERS, LAND, type LngLat } from './geo'
 import { PaperPlane } from './PaperPlane'
 
@@ -22,7 +22,7 @@ const known = (p: Place): p is Place & { lat: number; lng: number } => p.lat != 
  */
 export function AirspaceMap({ home, flights }: { home: Place; flights: Flight[] }) {
   const navigate = useNavigate()
-  const now = useNow(1000)
+  const now = useNow(LIVE_TICK_MS)
 
   const geo = useMemo(() => {
     const routes = flights

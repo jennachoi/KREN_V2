@@ -185,6 +185,35 @@ export interface ProfileInput {
   learningLang: string
   bio: string
   interestIds: number[]
+  avatar?: string | null
+}
+
+export function useAvatars() {
+  return useQuery({ queryKey: ['avatars'], queryFn: () => api<string[]>('/api/avatars'), staleTime: Infinity })
+}
+
+export interface RandomQuota {
+  limit: number
+  used: number
+  remaining: number
+}
+
+export function useRandomQuota() {
+  return useQuery({ queryKey: ['random-quota'], queryFn: () => api<RandomQuota>('/api/letters/random/quota') })
+}
+
+/** "Send to a random penpal": the server picks the recipient; the response says who. */
+export function useSendRandom() {
+  const qc = useQueryClient()
+  const refreshStamps = useRefreshStamps()
+  return useMutation({
+    mutationFn: (body: string) => api<Letter>('/api/letters/random', 'POST', { body }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['random-quota'] }),
+    onSuccess: () => {
+      refreshStamps()
+      qc.invalidateQueries({ queryKey: ['letters'] })
+    },
+  })
 }
 
 export function useUpdateProfile() {

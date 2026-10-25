@@ -34,7 +34,7 @@ export function NotebookPage() {
             <Card key={c.id}>
               <CardHead right={<Link to={`/letters/${c.letterId}`} className="text-[12px] text-primary hover:underline">Open letter</Link>}>
                 <span className="flex items-center gap-2">
-                  <Avatar name={c.corrector.displayName} country={c.corrector.country} size={26} />
+                  <Avatar name={c.corrector.displayName} country={c.corrector.country} avatar={c.corrector.avatar} size={26} />
                   {c.corrector.displayName}
                   <span className="text-[12px] font-normal text-muted">· {letterDate(c.createdAt)}</span>
                 </span>

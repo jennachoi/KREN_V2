@@ -86,7 +86,7 @@ function LetterCard({ l, box, selected }: { l: LetterSummary; box: 'inbox' | 'se
         }`}
       >
         <div className="flex items-start gap-3">
-          <Avatar name={l.counterpart.displayName} country={l.counterpart.country} size={40} />
+          <Avatar name={l.counterpart.displayName} country={l.counterpart.country} avatar={l.counterpart.avatar} size={40} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <span className={`text-[13px] ${selected ? 'text-primary' : 'text-soft'} ${unread ? 'font-semibold text-ink' : ''}`}>
@@ -168,7 +168,7 @@ function LetterDetail({ id }: { id: number }) {
       <Card className="px-6 py-5">
         <div className="flex items-center gap-3 border-b border-line pb-4">
           <Link to={`/users/${letter.sender.id === me.id ? me.id : letter.sender.id}`}>
-            <Avatar name={letter.sender.displayName} country={letter.sender.country} size={42} />
+            <Avatar name={letter.sender.displayName} country={letter.sender.country} avatar={letter.sender.avatar} size={42} />
           </Link>
           <div>
             <div className="text-[14px] text-ink">

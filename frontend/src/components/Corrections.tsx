@@ -35,7 +35,7 @@ export function CorrectionView({ correction }: { correction: Correction }) {
   return (
     <Card className="px-6 py-5">
       <div className="mb-2 flex items-center gap-3">
-        <Avatar name={correction.corrector.displayName} country={correction.corrector.country} size={34} />
+        <Avatar name={correction.corrector.displayName} country={correction.corrector.country} avatar={correction.corrector.avatar} size={34} />
         <div>
           <p className="text-[13px] text-ink">
             <b className="font-medium">{correction.corrector.displayName}</b> corrected this letter

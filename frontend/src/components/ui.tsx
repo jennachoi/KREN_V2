@@ -60,14 +60,33 @@ export const BoxSelect = (props: SelectHTMLAttributes<HTMLSelectElement>) => (
   <select className="w-full bg-transparent py-0.5 text-[13px] text-ink outline-none" {...props} />
 )
 
-export function Avatar({ name, country, size = 44 }: { name: string; country: string; size?: number }) {
+// Soft background per avatar so a page of people doesn't look like one colour.
+const AVATAR_BACKGROUNDS = [
+  'from-[#ffe3e3] to-[#ffc9c9]',
+  'from-[#fff3bf] to-[#ffe066]',
+  'from-[#d3f9d8] to-[#b2f2bb]',
+  'from-[#d0ebff] to-[#a5d8ff]',
+  'from-[#e5dbff] to-[#d0bfff]',
+  'from-[#ffe8cc] to-[#ffd8a8]',
+  'from-[#c5f6fa] to-[#99e9f2]',
+  'from-[#f3d9fa] to-[#eebefa]',
+]
+
+function backgroundFor(seed: string) {
+  let h = 0
+  for (const ch of seed) h = (h * 31 + ch.codePointAt(0)!) >>> 0
+  return AVATAR_BACKGROUNDS[h % AVATAR_BACKGROUNDS.length]
+}
+
+/** Emoji profile picture on a pastel disc, with the country flag as a badge. Falls back to the initial. */
+export function Avatar({ name, country, avatar, size = 44 }: { name: string; country: string; avatar?: string | null; size?: number }) {
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div
-        className="flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br from-[#d9e7fa] to-[#b9d1f3] font-display font-semibold text-deep shadow-sm"
-        style={{ fontSize: size * 0.4 }}
+        className={`flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br font-display font-semibold text-deep shadow-sm ${backgroundFor(avatar ?? name)}`}
+        style={{ fontSize: avatar ? size * 0.5 : size * 0.4 }}
       >
-        {name.slice(0, 1).toUpperCase()}
+        {avatar ?? name.slice(0, 1).toUpperCase()}
       </div>
       <span
         className="absolute -bottom-0.5 -left-0.5 flex items-center justify-center rounded-full bg-white leading-none shadow-sm"

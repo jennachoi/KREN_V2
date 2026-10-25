@@ -10,17 +10,20 @@ export function useNow(intervalMs = 1000) {
   return now
 }
 
-/** "1d 2h", "3h 12m", "4m 05s", "arriving…" */
+/** "1d 2h", "3h 12m", "12m", "< 1m" — no seconds, so the page isn't ticking constantly. */
 export function formatRemaining(ms: number) {
   if (ms <= 0) return 'arriving…'
-  const s = Math.floor(ms / 1000)
-  const d = Math.floor(s / 86400)
-  const h = Math.floor((s % 86400) / 3600)
-  const m = Math.floor((s % 3600) / 60)
+  const totalMin = Math.ceil(ms / 60_000)
+  const d = Math.floor(totalMin / 1440)
+  const h = Math.floor((totalMin % 1440) / 60)
+  const m = totalMin % 60
   if (d > 0) return `${d}d ${h}h`
   if (h > 0) return `${h}h ${m}m`
-  return `${m}m ${String(s % 60).padStart(2, '0')}s`
+  return totalMin <= 1 ? '< 1m' : `${m}m`
 }
+
+/** How often live views re-render: often enough for the plane to glide, rare enough to stay calm. */
+export const LIVE_TICK_MS = 15_000
 
 export function flightProgress(sentAt: string, deliverAt: string, now: number) {
   const start = new Date(sentAt).getTime()
