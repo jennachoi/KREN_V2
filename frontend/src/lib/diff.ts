@@ -3,13 +3,22 @@ export type DiffPart = { kind: 'same' | 'removed' | 'added'; text: string }
 const MAX_CELLS = 400_000
 
 /**
- * Character-level diff (longest common subsequence) for showing corrections inline, v1-style:
- * removed text struck through, added text highlighted. Characters rather than words because Korean
- * and Japanese corrections often change a particle inside a "word".
+ * Splits text into diff units: a run of Latin letters/digits (an English word) is one unit, so
+ * "famous" → "popular" reads as a word swap rather than a jumble of letters; every other character
+ * (Hangul, kana, spaces, punctuation) is its own unit, because Korean corrections often change a
+ * single particle inside a word.
  */
-export function diffChars(before: string, after: string): DiffPart[] {
-  const a = [...before]
-  const b = [...after]
+function tokenize(text: string): string[] {
+  return text.match(/[\p{Script=Latin}\p{N}']+|[\s\S]/gu) ?? []
+}
+
+/**
+ * Diff (longest common subsequence over {@link tokenize} units) for showing corrections: what was
+ * removed from the original and what was added in the correction.
+ */
+export function diffText(before: string, after: string): DiffPart[] {
+  const a = tokenize(before)
+  const b = tokenize(after)
   if (a.length * b.length > MAX_CELLS) {
     return [
       { kind: 'removed', text: before },
@@ -23,10 +32,10 @@ export function diffChars(before: string, after: string): DiffPart[] {
     }
   }
   const parts: DiffPart[] = []
-  const push = (kind: DiffPart['kind'], ch: string) => {
+  const push = (kind: DiffPart['kind'], t: string) => {
     const last = parts[parts.length - 1]
-    if (last && last.kind === kind) last.text += ch
-    else parts.push({ kind, text: ch })
+    if (last && last.kind === kind) last.text += t
+    else parts.push({ kind, text: t })
   }
   let i = 0
   let j = 0
@@ -43,7 +52,47 @@ export function diffChars(before: string, after: string): DiffPart[] {
   }
   while (i < a.length) push('removed', a[i++])
   while (j < b.length) push('added', b[j++])
-  return parts
+  return absorbSpaces(parts)
+}
+
+/**
+ * A lone space kept as "same" between two changes splits one edit in two ("famous for" →
+ * "popular with" would show as two islands). Fold such spaces into the surrounding change.
+ */
+function absorbSpaces(parts: DiffPart[]): DiffPart[] {
+  const out: DiffPart[] = []
+  for (let k = 0; k < parts.length; k++) {
+    const p = parts[k]
+    const changedAround = k > 0 && k < parts.length - 1 && parts[k - 1].kind !== 'same' && parts[k + 1].kind !== 'same'
+    if (p.kind === 'same' && /^\s+$/.test(p.text) && changedAround) {
+      out.push({ kind: 'removed', text: p.text }, { kind: 'added', text: p.text })
+    } else {
+      out.push({ ...p })
+    }
+  }
+  const merged: DiffPart[] = []
+  for (const p of out) {
+    const last = merged[merged.length - 1]
+    if (last && last.kind === p.kind) last.text += p.text
+    else merged.push(p)
+  }
+  return merged
+}
+
+/** The two lines of a correction: the original (unchanged + removed) and the fix (unchanged + added). */
+export function diffSides(before: string, after: string): { before: DiffPart[]; after: DiffPart[] } {
+  const parts = diffText(before, after)
+  const side = (hide: DiffPart['kind']) => {
+    const out: DiffPart[] = []
+    for (const p of parts) {
+      if (p.kind === hide) continue
+      const last = out[out.length - 1]
+      if (last && last.kind === p.kind) last.text += p.text
+      else out.push({ ...p })
+    }
+    return out
+  }
+  return { before: side('added'), after: side('removed') }
 }
 
 /** Splits a letter into sentences (keeping their punctuation) so each can be corrected separately. */

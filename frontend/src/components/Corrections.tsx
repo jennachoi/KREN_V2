@@ -2,30 +2,47 @@ import { useState } from 'react'
 import { SpellCheck } from 'lucide-react'
 import { useSubmitCorrection } from '../api/hooks'
 import type { Correction, Letter } from '../api/types'
-import { diffChars, splitSentences } from '../lib/diff'
+import { diffSides, splitSentences } from '../lib/diff'
 import { letterDate } from '../lib/locale'
 import { Avatar, Button, Card, ErrorText } from './ui'
 
-/** One corrected sentence, shown inline v1-style: removed text struck through, additions highlighted. */
+/**
+ * One corrected sentence as two lines: the original with removed words in red, then the
+ * correction with added words in blue.
+ */
 export function CorrectionDiff({ original, corrected, note }: { original: string; corrected: string; note: string | null }) {
+  const { before, after } = diffSides(original, corrected)
   return (
-    <div className="py-3">
-      <p className="text-[14px] leading-relaxed">
-        {diffChars(original, corrected).map((part, i) =>
-          part.kind === 'same' ? (
-            <span key={i}>{part.text}</span>
-          ) : part.kind === 'removed' ? (
-            <span key={i} className="text-coral line-through decoration-coral/70">
-              {part.text}
-            </span>
-          ) : (
-            <span key={i} className="rounded-[2px] bg-primary/10 text-primary underline decoration-primary/40 underline-offset-2">
-              {part.text}
-            </span>
-          ),
-        )}
+    <div className="space-y-1 py-3 text-[14px] leading-relaxed">
+      <p className="flex gap-3">
+        <span className="w-12 shrink-0 pt-0.5 text-[11px] uppercase tracking-wide text-muted">Before</span>
+        <span>
+          {before.map((part, i) =>
+            part.kind === 'same' ? (
+              <span key={i}>{part.text}</span>
+            ) : (
+              <span key={i} className="rounded-[2px] bg-coral/10 text-coral line-through decoration-coral/60">
+                {part.text}
+              </span>
+            ),
+          )}
+        </span>
       </p>
-      {note && <p className="mt-1 text-[12px] text-muted">💬 {note}</p>}
+      <p className="flex gap-3">
+        <span className="w-12 shrink-0 pt-0.5 text-[11px] uppercase tracking-wide text-primary">After</span>
+        <span>
+          {after.map((part, i) =>
+            part.kind === 'same' ? (
+              <span key={i}>{part.text}</span>
+            ) : (
+              <span key={i} className="rounded-[2px] bg-primary/10 font-medium text-primary">
+                {part.text}
+              </span>
+            ),
+          )}
+        </span>
+      </p>
+      {note && <p className="pl-[60px] text-[12px] text-muted">💬 {note}</p>}
     </div>
   )
 }
