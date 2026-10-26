@@ -6,9 +6,10 @@ import { Layout } from './components/Layout'
 import { ComposePage, RandomComposePage } from './pages/ComposePage'
 import { FriendsPage } from './pages/FriendsPage'
 import { HomePage } from './pages/HomePage'
-import { LettersPage } from './pages/LettersPage'
+import { LetterRedirect, LettersPage } from './pages/LettersPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotebookPage } from './pages/NotebookPage'
+import { ReplyPage } from './pages/ReplyPage'
 import { MyProfilePage, UserProfilePage } from './pages/ProfilePage'
 import { SignupPage } from './pages/SignupPage'
 import './index.css'
@@ -30,9 +31,11 @@ const router = createBrowserRouter([
       { path: '/profile/edit', element: <MyProfilePage edit /> },
       { path: '/compose/random', element: <RandomComposePage /> },
       { path: '/compose/:userId', element: <ComposePage /> },
-      { path: '/letters', element: <LettersPage key="inbox" box="inbox" /> },
-      { path: '/letters/sent', element: <LettersPage key="sent" box="sent" /> },
-      { path: '/letters/:id', element: <LettersPage key="inbox" box="inbox" /> },
+      { path: '/letters', element: <LettersPage /> },
+      { path: '/letters/with/:userId', element: <LettersPage /> },
+      { path: '/letters/sent', element: <Navigate to="/letters" replace /> },
+      { path: '/letters/:id', element: <LetterRedirect /> },
+      { path: '/letters/:id/reply', element: <ReplyPage /> },
       { path: '/notebook', element: <NotebookPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

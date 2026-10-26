@@ -1,15 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from './client'
 import type {
   BlockedUser,
   CheckinResult,
+  ConversationSummary,
+  ConversationThread,
   Correction,
   CorrectionLine,
   Dashboard,
   Interest,
   LedgerEntry,
   Letter,
-  LetterSummary,
   MyProfile,
   Page,
   PublicProfile,
@@ -20,7 +21,6 @@ export const keys = {
   interests: ['interests'] as const,
   penpals: (interestIds: number[], page: number) => ['penpals', interestIds, page] as const,
   user: (id: number) => ['user', id] as const,
-  mailbox: (box: 'inbox' | 'sent', page: number) => ['letters', box, page] as const,
   letter: (id: number) => ['letter', id] as const,
   ledger: ['ledger'] as const,
   correction: (letterId: number) => ['correction', letterId] as const,
@@ -65,16 +65,30 @@ export function useUser(id: number) {
   return useQuery({ queryKey: keys.user(id), queryFn: () => api<PublicProfile>(`/api/users/${id}`), retry: false })
 }
 
-export function useMailbox(box: 'inbox' | 'sent', page: number) {
+/** Under the 'letters' key, like everything mailbox-shaped, so SSE events and sends refresh it. */
+export function useConversations(page: number) {
   return useQuery({
-    queryKey: keys.mailbox(box, page),
-    queryFn: () => api<Page<LetterSummary>>(`/api/letters/${box}?page=${page}&size=20`),
+    queryKey: ['letters', 'conversations', page],
+    queryFn: () => api<Page<ConversationSummary>>(`/api/conversations?page=${page}&size=20`),
   })
 }
 
-export function useLetter(id: number) {
+/** Letters with one penpal. Page 0 is the newest; each further page reaches further back. */
+export function useThread(userId: number) {
+  return useInfiniteQuery({
+    queryKey: ['letters', 'thread', userId],
+    queryFn: ({ pageParam }) =>
+      api<ConversationThread>(`/api/conversations/${userId}?size=15${pageParam ? `&before=${pageParam}` : ''}`),
+    initialPageParam: null as number | null,
+    getNextPageParam: (page) => (page.hasEarlier ? page.letters[0].id : null),
+    retry: false,
+  })
+}
+
+export function useLetter(id: number, enabled = true) {
   const qc = useQueryClient()
   return useQuery({
+    enabled,
     queryKey: keys.letter(id),
     queryFn: async () => {
       const letter = await api<Letter>(`/api/letters/${id}`)

@@ -135,3 +135,20 @@ export interface BlockedUser {
   user: UserSummary
   blockedAt: string
 }
+
+/** One penpal in the mailbox: the newest letter between us plus counts. */
+export interface ConversationSummary {
+  penpal: UserSummary
+  lastLetter: LetterSummary
+  lastFromMe: boolean
+  unread: number
+  awaitingReply: number
+  inFlight: number
+}
+
+/** A page of letters with one penpal, oldest first. */
+export interface ConversationThread {
+  penpal: UserSummary
+  letters: Letter[]
+  hasEarlier: boolean
+}

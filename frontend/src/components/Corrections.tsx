@@ -75,9 +75,20 @@ export function CorrectionView({ correction }: { correction: Correction }) {
 
 /**
  * v1's letter correction screen: each sentence of the letter on the left, an editable copy on the
- * right. Only sentences that were changed are sent. Correcting earns a stamp.
+ * right (or below it when `stacked`, for narrow columns). Only sentences that were changed are
+ * sent. Correcting earns a stamp.
  */
-export function CorrectionEditor({ letter, onDone, onCancel }: { letter: Letter; onDone: () => void; onCancel: () => void }) {
+export function CorrectionEditor({
+  letter,
+  onDone,
+  onCancel,
+  stacked = false,
+}: {
+  letter: Letter
+  onDone: () => void
+  onCancel: () => void
+  stacked?: boolean
+}) {
   const sentences = splitSentences(letter.body ?? '')
   const [edits, setEdits] = useState<string[]>(sentences)
   const [notes, setNotes] = useState<string[]>(sentences.map(() => ''))
@@ -99,7 +110,7 @@ export function CorrectionEditor({ letter, onDone, onCancel }: { letter: Letter;
       </p>
       <div className="divide-y divide-line border-y border-line">
         {sentences.map((s, i) => (
-          <div key={i} className="grid gap-3 py-3 md:grid-cols-2">
+          <div key={i} className={`grid gap-2 py-3 ${stacked ? '' : 'md:grid-cols-2 md:gap-3'}`}>
             <p className="text-[13px] leading-relaxed text-[#555]">{s}</p>
             <div className="space-y-1.5">
               <textarea
