@@ -26,10 +26,14 @@ export function LettersPage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
-      <div className={`lg:h-[calc(100vh-150px)] lg:overflow-y-auto lg:pr-1 ${penpalId ? 'max-lg:hidden' : ''}`}>
+      {/* Only the list scrolls on its own (sticky beside the thread); the thread uses the page's scroll,
+          so nothing gets squeezed into a short box when the window is small. */}
+      <div
+        className={`lg:sticky lg:top-[76px] lg:max-h-[calc(100dvh-96px)] lg:self-start lg:overflow-y-auto lg:pr-1 ${penpalId ? 'max-lg:hidden' : ''}`}
+      >
         <ConversationList selectedId={penpalId} />
       </div>
-      <div className="lg:h-[calc(100vh-150px)] lg:overflow-y-auto lg:border-l lg:border-line lg:pl-6">
+      <div className="min-w-0 lg:border-l lg:border-line lg:pl-6">
         {penpalId ? (
           <ThreadView key={penpalId} penpalId={penpalId} focusId={focusId} />
         ) : (
@@ -250,7 +254,7 @@ function ThreadLetter({ letter, me, open, onToggle }: { letter: Letter; me: MyPr
     : letter.body!.split('\n').find((line) => line.trim()) ?? ''
 
   return (
-    <div id={`letter-${letter.id}`} className={`scroll-mt-4 ${mine ? 'ml-6 sm:ml-12' : 'mr-6 sm:mr-12'}`}>
+    <div id={`letter-${letter.id}`} className={`scroll-mt-20 ${mine ? 'ml-6 sm:ml-12' : 'mr-6 sm:mr-12'}`}>
       <div
         className={`rounded-[6px] border ${mine ? 'border-primary/20 bg-[#f4f8fe]' : 'border-line bg-white'} ${
           open ? 'shadow-[0_4px_14px_rgba(0,0,0,0.06)]' : ''
