@@ -9,8 +9,9 @@
 </p>
 
 <p align="center">
-  Live demo: coming soon
-  <!-- <a href="https://LIVE-URL">Live demo</a> · demo accounts: emma@demo.kren / minji@demo.kren, password demo1234 -->
+  <a href="https://kren.canadacentral.cloudapp.azure.com"><b>Live demo</b></a><br>
+  Demo accounts: <code>minji@demo.kren</code> or <code>emma@demo.kren</code>, password <code>demo1234</code><br>
+  <sub>On the demo, an hour of flight time passes in a minute.</sub>
 </p>
 
 <p align="center">
@@ -116,7 +117,7 @@ Stamps come from the sign-up bonus, a daily check-in and corrections, and every 
 | Maps | d3-geo, world-atlas (Natural Earth) |
 | Testing | JUnit 5, Spring MockMvc, Testcontainers (real PostgreSQL) |
 | Build and CI | Maven, npm, GitHub Actions |
-| Deployment | Docker (multi-stage image), GitHub Container Registry, Docker Compose, Caddy (automatic HTTPS) |
+| Deployment | Azure VM (Arm64) and Azure Database for PostgreSQL, Docker (multi-stage image), GitHub Container Registry, Docker Compose, Caddy (automatic HTTPS) |
 
 <br>
 

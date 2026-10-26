@@ -1,4 +1,4 @@
-# Caddy obtains and renews the TLS certificate for $KREN_DOMAIN automatically and redirects HTTP to
+# Caddy obtains and renews a TLS certificate for each host in $KREN_DOMAIN (comma separated) automatically and redirects HTTP to
 # HTTPS. It sets X-Forwarded-Proto, which the app trusts (server.forward-headers-strategy), so session
 # cookies are issued as Secure. Server-Sent Events are streamed without buffering.
 {$KREN_DOMAIN} {

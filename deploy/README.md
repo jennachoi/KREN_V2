@@ -37,8 +37,12 @@ GitHub's Arm runner. The app container is capped at 640 MB (it uses ~340 MB with
    from `.env.example`.
 5. Make the GHCR package public (or `docker login ghcr.io` on the VM), then
    `docker compose -f compose.prod.yaml up -d`.
-6. In GitHub: secrets `VM_HOST`, `VM_USER`, `VM_SSH_KEY`; repository variable `DEPLOY_ENABLED=true`.
-   From then on, pushes to `main` deploy automatically.
+6. In GitHub: secrets `VM_HOST`, `VM_USER`, `VM_SSH_KEY` (a dedicated deploy key, not the admin
+   key); repository variable `DEPLOY_ENABLED=true`. From then on, pushes to `main` deploy
+   automatically.
+
+SSH stays reachable from anywhere because GitHub-hosted runners use changing IP addresses. It
+accepts keys only, refuses root, and fail2ban bans an address after five failed attempts.
 
 ## Operations
 
