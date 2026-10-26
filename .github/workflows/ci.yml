@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: # "Run workflow" button: rebuild and redeploy main without a new commit
 
 jobs:
   build:
@@ -38,7 +39,7 @@ jobs:
   # subscription), so the image is built natively on GitHub's Arm runner.
   image:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
