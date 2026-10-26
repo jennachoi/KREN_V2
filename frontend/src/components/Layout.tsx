@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, NavLink, Outlet, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Bell, LogOut, Mail, User } from 'lucide-react'
+import { Bell, Home, LogOut, Mail, SpellCheck, User, Users } from 'lucide-react'
 import { useLogout, useMe } from '../api/hooks'
 import type { Correction, LetterSummary } from '../api/types'
 import { timeAgo } from '../lib/locale'
@@ -33,10 +33,42 @@ export function Layout() {
   return (
     <div className="min-h-screen">
       <Navbar name={me.displayName} country={me.country} avatar={me.avatar} notices={notices} />
-      <main className="mx-auto max-w-[1280px] px-4 py-7">
+      {/* bottom padding leaves room for the mobile tab bar */}
+      <main className="mx-auto max-w-[1280px] px-3 pt-5 pb-24 sm:px-4 sm:py-7">
         <Outlet />
       </main>
+      <MobileTabBar />
     </div>
+  )
+}
+
+const NAV = [
+  { to: '/', label: 'HOME', short: 'Home', icon: Home, end: true },
+  { to: '/friends', label: 'FRIENDS', short: 'Friends', icon: Users, end: false },
+  { to: '/letters', label: 'LETTER', short: 'Letters', icon: Mail, end: false },
+  { to: '/notebook', label: 'NOTEBOOK', short: 'Notebook', icon: SpellCheck, end: false },
+]
+
+/** Phones: the four sections move to a fixed bottom bar, like a native app. */
+function MobileTabBar() {
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <div className="grid grid-cols-4">
+        {NAV.map(({ to, short, icon: Icon, end }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-0.5 py-2 text-[11px] ${isActive ? 'text-primary' : 'text-[#999]'}`
+            }
+          >
+            <Icon size={20} strokeWidth={1.7} />
+            {short}
+          </NavLink>
+        ))}
+      </div>
+    </nav>
   )
 }
 
@@ -56,27 +88,20 @@ function Navbar({
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-white">
-      <div className="mx-auto flex h-[58px] max-w-[1240px] items-center gap-8 px-4">
+      <div className="mx-auto flex h-[54px] max-w-[1240px] items-center gap-8 px-3 sm:h-[58px] sm:px-4">
         <Link to="/" className="shrink-0">
-          <img src="/logo.png" alt="KREN" className="h-9" />
+          <img src="/logo.png" alt="KREN" className="h-8 sm:h-9" />
         </Link>
-        <nav className="flex gap-6">
-          <NavLink to="/" end className={link}>
-            HOME
-          </NavLink>
-          <NavLink to="/friends" className={link}>
-            FRIENDS
-          </NavLink>
-          <NavLink to="/letters" className={link}>
-            LETTER
-          </NavLink>
-          <NavLink to="/notebook" className={link}>
-            NOTEBOOK
-          </NavLink>
+        <nav className="hidden gap-6 md:flex">
+          {NAV.map(({ to, label, end }) => (
+            <NavLink key={to} to={to} end={end} className={link}>
+              {label}
+            </NavLink>
+          ))}
         </nav>
         <div className="ml-auto flex items-center gap-4 text-ink">
           <NotificationBell {...notices} />
-          <Link to="/letters" title="Letters" className="flex text-[#555] hover:text-primary">
+          <Link to="/letters" title="Letters" className="hidden text-[#555] hover:text-primary md:flex">
             <Mail size={18} strokeWidth={1.6} />
           </Link>
           <AccountMenu name={name} country={country} avatar={avatar} />
@@ -117,7 +142,7 @@ function NotificationBell({ items, unseen, markSeen, clear }: ReturnType<typeof 
         {unseen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
       </button>
       {open && (
-        <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-[6px] border border-line bg-white shadow-lg">
+        <div className="fixed inset-x-3 top-[58px] overflow-hidden rounded-[6px] border border-line bg-white shadow-lg sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-3 sm:w-80">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <span className="font-display text-[14px] text-[#9aa0b4]">Notifications</span>
             <Bell size={15} className="text-[#9aa0b4]" />
@@ -166,7 +191,7 @@ function AccountMenu({ name, country, avatar }: { name: string; country: string;
     <div ref={ref} className="relative">
       <button className="flex items-center gap-2" onClick={() => setOpen((o) => !o)}>
         <Avatar name={name} country={country} avatar={avatar} size={30} />
-        <span className="text-[13px] text-ink">{name}</span>
+        <span className="hidden text-[13px] text-ink sm:inline">{name}</span>
       </button>
       {open && (
         <div className="absolute right-0 mt-3 w-44 overflow-hidden rounded-[6px] border border-line bg-white py-1 text-[13px] shadow-lg">

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { Send } from 'lucide-react'
 import { ApiError } from '../api/client'
 import { useMe, useRandomQuota, useSendLetter, useSendRandom, useUser } from '../api/hooks'
+import { Postcard } from '../components/Postcard'
 import { Button, Card, ErrorText, Spinner } from '../components/ui'
 import { languageName } from '../lib/locale'
 import { MAX_BODY } from '../lib/domain'
@@ -22,11 +23,7 @@ export function ComposePage() {
 
   return (
     <div className="mx-auto max-w-[880px]">
-      <div
-        className="relative bg-[length:100%_100%] bg-no-repeat px-[7%] pt-[12%] pb-[6%]"
-        style={{ backgroundImage: 'url(/img/postcard.png)', aspectRatio: '863 / 587' }}
-      >
-        <div className="flex h-full flex-col">
+      <Postcard>
           <h1 className="font-display text-[clamp(16px,2.2vw,22px)] font-semibold text-ink">TO.{to.displayName}</h1>
           <textarea
             autoFocus
@@ -52,8 +49,7 @@ export function ComposePage() {
               <Send size={14} /> Send letter
             </Button>
           </div>
-        </div>
-      </div>
+      </Postcard>
       <div className="mt-3 text-center text-[12px]">
         {outOfStamps ? (
           <p className="text-coral">You're out of stamps. Use the Daily Event on the home page to get one.</p>
@@ -83,11 +79,7 @@ export function RandomComposePage() {
 
   return (
     <div className="mx-auto max-w-[880px]">
-      <div
-        className="relative bg-[length:100%_100%] bg-no-repeat px-[7%] pt-[12%] pb-[6%]"
-        style={{ backgroundImage: 'url(/img/postcard.png)', aspectRatio: '863 / 587' }}
-      >
-        <div className="flex h-full flex-col">
+      <Postcard>
           <h1 className="font-display text-[clamp(16px,2.2vw,22px)] font-semibold text-ink">TO. a random penpal ✨</h1>
           <p className="text-[12px] text-muted">
             A native {languageName(me.learningLang)} speaker learning {languageName(me.nativeLang)}, chosen for you.
@@ -116,8 +108,7 @@ export function RandomComposePage() {
               <Send size={14} /> Send to someone new
             </Button>
           </div>
-        </div>
-      </div>
+      </Postcard>
       <div className="mt-3 text-center text-[12px]">
         {code === 'INSUFFICIENT_STAMPS' ? (
           <p className="text-coral">You're out of stamps. Use the Daily Event or correct a letter to earn one.</p>

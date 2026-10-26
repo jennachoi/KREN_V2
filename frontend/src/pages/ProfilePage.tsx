@@ -62,7 +62,7 @@ function ProfileHeader({
         </span>
       </div>
       <div className="relative grid grid-cols-1 items-end gap-3 px-5 pt-14 pb-5 md:grid-cols-3 md:pt-4">
-        <div className="order-2 space-y-2 md:order-1">
+        <div className="order-2 flex flex-col items-center space-y-2 md:order-1 md:items-start">
           {stampBalance !== undefined && (
             <div className="flex items-center gap-2 text-[12px] text-soft">
               <img src="/img/stamp-box.png" alt="" className="h-6 w-6 opacity-70" />

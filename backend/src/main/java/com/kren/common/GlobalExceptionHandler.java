@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -38,7 +39,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return problem(ex.errorCode(), ex.getMessage(), null);
 	}
 
-	/** Only the login endpoint authenticates explicitly, so any failure here is bad credentials. */
+	/**
+	 * The user lookup itself failed (database down, etc.). Spring Security wraps that in an
+	 * AuthenticationException; reporting it as "invalid email or password" would hide an outage.
+	 */
+	@ExceptionHandler(InternalAuthenticationServiceException.class)
+	ResponseEntity<ProblemDetail> handleAuthenticationServiceFailure(InternalAuthenticationServiceException ex) {
+		log.error("Authentication could not be performed", ex);
+		return problem(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.defaultMessage(), null);
+	}
+
+	/** Only the login endpoint authenticates explicitly, so any other failure here is bad credentials. */
 	@ExceptionHandler(AuthenticationException.class)
 	ResponseEntity<ProblemDetail> handleAuthenticationException(AuthenticationException ex) {
 		return problem(ErrorCode.BAD_CREDENTIALS, ErrorCode.BAD_CREDENTIALS.defaultMessage(), null);

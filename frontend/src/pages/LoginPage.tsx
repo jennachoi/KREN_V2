@@ -23,6 +23,8 @@ const DOTS = Array.from({ length: 70 }, (_, i) => {
   }
 })
 
+const DEMO = { email: 'emma@demo.kren', password: 'demo1234' }
+
 const pill =
   'h-10 rounded-full text-[12px] font-semibold tracking-wider transition-colors'
 
@@ -105,9 +107,12 @@ export function LoginPage() {
               </Link>
               <button
                 type="button"
+                disabled={login.isPending}
+                // One click straight into the demo account, for visitors who just want to look around.
                 onClick={() => {
-                  setEmail('emma@demo.kren')
-                  setPassword('demo1234')
+                  setEmail(DEMO.email)
+                  setPassword(DEMO.password)
+                  login.mutate(DEMO, { onSuccess: () => navigate('/') })
                 }}
                 className={`${pill} border border-white/70 text-white hover:bg-white/10`}
               >

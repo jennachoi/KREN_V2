@@ -15,7 +15,8 @@ export function HomePage() {
   if (!me) return <Spinner />
   return (
     <div className="grid gap-5 lg:grid-cols-[210px_minmax(0,1fr)_230px] xl:grid-cols-[230px_minmax(0,1fr)_250px]">
-      <aside className="space-y-5">
+      {/* On phones the dashboard comes first; the side widgets follow it. */}
+      <aside className="order-2 space-y-5 lg:order-none">
         <DailyEvent />
         <Card>
           <CardHead right={<span className="rounded-full bg-chip px-2 py-0.5 text-[12px]">{me.stampBalance}</span>}>
@@ -30,11 +31,11 @@ export function HomePage() {
         </Card>
       </aside>
 
-      <section className="min-w-0 space-y-4">
+      <section className="order-1 min-w-0 space-y-4 lg:order-none">
         <LetterDashboard />
       </section>
 
-      <aside className="space-y-5">
+      <aside className="order-3 space-y-5 lg:order-none">
         <Suggestions me={me} />
         <RandomLetterCard learning={me.learningLang} />
       </aside>
