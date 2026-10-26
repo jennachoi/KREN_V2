@@ -9,3 +9,7 @@ node_modules/
 
 # Frontend build output (bundled into the jar)
 backend/src/main/resources/static/
+
+# Private keys never belong in the repo
+*.pem
+*.key
