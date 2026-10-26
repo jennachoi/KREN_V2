@@ -13,7 +13,8 @@ services:
     expose:
       - "8080"
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      # bash, not sh: /dev/tcp is a bash feature (the JRE image has no curl or wget).
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
       interval: 30s
       timeout: 5s
       start_period: 90s
