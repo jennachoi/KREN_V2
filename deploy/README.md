@@ -15,12 +15,14 @@ Browser ─HTTPS─▶ Caddy :443 ─▶ app :8080 ─TLS─▶ Azure Database f
 
 | Piece | Service |
 |---|---|
-| VM | Ubuntu 24.04, B2ats v2 (2 vCPU, 1 GiB) |
+| VM | Ubuntu 24.04 Arm64, B2pts v2 (2 vCPU, 1 GiB), West US 2 |
 | Database | Azure Database for PostgreSQL – Flexible Server, Burstable B1ms |
-| Domain | Azure DNS name label (`<label>.<region>.cloudapp.azure.com`) |
+| Domain | Azure DNS name label (`<label>.westus2.cloudapp.azure.com`) |
 | TLS | Caddy + Let's Encrypt |
 
-The app container is capped at 640 MB (it uses ~340 MB with the demo data); the VM also gets a
+The student subscription only allows a few regions (westus2, canadacentral and three in Europe), and
+in those the only free-eligible VM size is the Arm64 B2pts v2, so CI builds a `linux/arm64` image on
+GitHub's Arm runner. The app container is capped at 640 MB (it uses ~340 MB with the demo data); the VM also gets a
 2 GB swap file.
 
 ## First-time setup

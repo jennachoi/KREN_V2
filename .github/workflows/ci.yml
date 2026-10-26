@@ -34,10 +34,12 @@ jobs:
         run: ./mvnw -B verify
 
   # Continuous delivery: only for pushes to main that passed the build above.
+  # The VM is an Arm64 machine (Azure B2pts v2, the only free-eligible size on the student
+  # subscription), so the image is built natively on GitHub's Arm runner.
   image:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
@@ -53,6 +55,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/arm64
           push: true
           tags: |
             ghcr.io/jennachoi/kren_v2:latest

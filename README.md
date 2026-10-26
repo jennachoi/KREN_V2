@@ -1,7 +1,6 @@
 <h1 align="center">KREN</h1>
 
 <h4 align="center">
-  Slow letters, corrected by a friend.<br>
   A language-exchange penpal app where letters take hours to arrive and native speakers correct them.
 </h4>
 
@@ -33,7 +32,6 @@
 - [Future improvements](#future-improvements)
 - [Getting started](#getting-started)
 - [Credits](#credits)
-
 <br>
 
 ## Background
@@ -41,7 +39,6 @@
 KREN started in 2021 as a six-person final project at a coding bootcamp, built with Java, Spring 5, JSP, MyBatis and Oracle. I worked on sign-up, profiles, account settings, multi-language support and UI integration.
 
 KREN v2 is a solo rebuild from scratch in 2026. No code was carried over. The original served as a reference for the domain rules and the screen designs I had worked on, and the goal this time was backend depth: schema design, transactions and concurrency, authorization, testing, CI/CD and deployment.
-
 <br>
 
 ## Overview
@@ -51,7 +48,6 @@ Language-exchange apps tend to fall into two groups. Penpal sites connect people
 You write to someone whose native language is the one you are learning, and who is learning yours. The letter flies across a live map and takes time to arrive: two hours within a country, around 46 hours from Seoul to Washington, D.C.. When it lands, the recipient can reply and correct your sentences one by one. Correcting someone's letter earns a stamp, and sending a letter costs one, so people who only receive letters eventually have to give something back. The corrections you receive collect in a notebook of things a native speaker would have written differently.
 
 The backend is Spring Boot 4 on Java 25 with PostgreSQL, and the frontend is a React and TypeScript single-page app served from the same origin. The interface is a rebuild of the 2021 KREN screens.
-
 <br>
 
 ## Features
@@ -69,15 +65,12 @@ A five-step sign-up collects account details, country, the language pair and int
 </table>
 -->
 
-<br>
-
 ### Finding penpals
 
 The friends page lists people whose native language is the one you are learning and who are learning yours, filtered by shared interests and paginated. Anyone on either side of a block is left out. A random-letter option sends to someone new whose languages match, up to three new people a day.
 
 <!-- <p align="center"><img src="docs/screenshots/friends.png" alt="Friend search" width="800"/><br><em>Matching by language pair and interests.</em></p> -->
 
-<br>
 
 ### Slow delivery with live tracking
 
@@ -93,8 +86,6 @@ Delivery time grows with distance: two hours of handling plus one hour per 250 k
 <p align="center"><img src="docs/screenshots/demo-flight.gif" alt="Paper plane moving along the route" width="80%"><br><em>The plane follows the great-circle route in real time.</em></p>
 -->
 
-<br>
-
 ### Letters and corrections
 
 Letters are written on a postcard. After a letter arrives, the recipient can reply or open the correction editor, which puts each sentence next to an editable copy. Only changed sentences are saved, each with an optional note, and the writer sees them as an inline diff. Every correction also goes into the writer's notebook.
@@ -107,8 +98,6 @@ Letters are written on a postcard. After a letter arrives, the recipient can rep
   </tr>
 </table>
 -->
-
-<br>
 
 ### Stamps, notifications and blocking
 
@@ -221,7 +210,6 @@ The pattern is the same in all four: the database makes the decision atomically,
 Most of what I took away came from the bugs above. Test tooling can quietly bypass the configuration you think you are testing, and a passing suite says nothing about a flow nobody wrote a test for, so I now run the app by hand after anything touching authentication. Spring's proxies and Hibernate's persistence context stopped being abstractions once each of them broke something. Breaking each concurrency fix on purpose was the only way to know the tests measured anything.
 
 On the frontend side, rebuilding my own 2021 designs meant extracting colors, spacing and component patterns into design tokens instead of copying a template, and drawing the delivery map meant learning map projections and great-circle interpolation.
-
 <br>
 
 ## Future improvements
@@ -230,7 +218,6 @@ On the frontend side, rebuilding my own 2021 designs meant extracting colors, sp
 - A background job on the demo site that keeps letters flying between demo accounts
 - Reporting and an admin view
 - Redis or Postgres `LISTEN/NOTIFY` for SSE across several instances
-
 <br>
 
 ## Getting started
@@ -257,7 +244,6 @@ docker build -t kren .         # production image
 ```
 
 Deployment is described in [deploy/README.md](deploy/README.md).
-
 <br>
 
 ## Credits
