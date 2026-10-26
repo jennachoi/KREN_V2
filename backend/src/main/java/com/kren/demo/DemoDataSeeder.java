@@ -13,13 +13,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityManager;
-
 import com.kren.auth.AuthService;
 import com.kren.auth.dto.SignupRequest;
 import com.kren.correction.CorrectionService;
 import com.kren.correction.dto.CorrectionRequest;
+import com.kren.demo.DemoCast.Persona;
 import com.kren.letter.LetterService;
+import com.kren.stamp.StampService;
 import com.kren.user.Interest;
 import com.kren.user.InterestRepository;
 import com.kren.user.UserRepository;
@@ -27,145 +27,72 @@ import com.kren.user.UserService;
 import com.kren.user.dto.UpdateProfileRequest;
 
 /**
- * Creates a handful of public demo accounts (and a conversation) so visitors to the live site can
+ * Creates the public demo accounts and a few weeks of conversations, so visitors to the live site can
  * look around without signing up. Off by default; enabled with {@code kren.demo.seed=true}.
- * Goes through the real services, so seeded data obeys every rule real users do (stamps, ledger…).
- * Runs only when the demo accounts don't exist yet, so restarts don't duplicate anything.
+ *
+ * <p>Everything goes through the real services (stamps, ledger, delivery rules); only the timestamps
+ * are moved afterwards. The loaded version is stored in {@code app_settings}: when {@link #VERSION}
+ * changes, the demo accounts (and everything attached to them) are deleted and created again.
  */
 @Component
 @ConditionalOnProperty(name = "kren.demo.seed", havingValue = "true")
 class DemoDataSeeder implements ApplicationRunner {
 
-	static final String PASSWORD = "demo1234";
+	static final String VERSION = "2";
+	static final String PASSWORD = DemoCast.PASSWORD;
 
 	private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
-
-	private record Persona(String key, String name, String country, String nativeLang, String learningLang,
-			String avatar, String bio, List<String> interests) {
-
-		String email() {
-			return key + "@demo.kren";
-		}
-
-	}
-
-	private static final List<Persona> PERSONAS = List.of(
-			// English speakers learning Korean
-			new Persona("emma", "Emma", "US", "en", "ko", "m06",
-					"Visiting Seoul next spring! Looking for someone to chat with about K-dramas and food.",
-					List.of("Movies", "Food", "K-Culture")),
-			new Persona("liam", "Liam", "CA", "en", "ko", "m02",
-					"Grad student in Vancouver. I love hiking, indie music and trying new recipes.",
-					List.of("Music", "Travel", "Sports")),
-			new Persona("olivia", "Olivia", "GB", "en", "ko", "m04",
-					"Bookworm and amateur photographer. Learning Korean through webtoons.",
-					List.of("Books", "Photography", "K-Culture")),
-			new Persona("noah", "Noah", "AU", "en", "ko", "m34",
-					"Surf in the morning, Korean flashcards at night. Melbourne coffee snob.",
-					List.of("Sports", "Food", "Language Learning")),
-			new Persona("ava", "Ava", "NZ", "en", "ko", "m25",
-					"Primary school teacher in Wellington. Learning Korean so I can talk with my students' parents.",
-					List.of("Books", "Travel", "Language Learning")),
-			new Persona("ethan", "Ethan", "US", "en", "ko", "m20",
-					"Game dev in Seattle. Esports got me into Korean — now I want to read the forums myself.",
-					List.of("Gaming", "Technology", "K-Culture")),
-			new Persona("chloe", "Chloe", "IE", "en", "ko", "m05",
-					"Dublin nurse who fell in love with Korean ballads. Slowly working through TTMIK.",
-					List.of("Music", "K-Culture", "Language Learning")),
-			new Persona("james", "James", "GB", "en", "ko", "m30",
-					"History nerd and tea enthusiast. Planning a temple stay in Gyeongju.",
-					List.of("Travel", "Books", "Food")),
-			new Persona("mia", "Mia", "CA", "en", "ko", "m14",
-					"Illustrator from Toronto. I draw every letter I get, so write me something fun!",
-					List.of("Art", "K-Culture", "Movies")),
-			new Persona("lucas", "Lucas", "US", "en", "ko", "m09",
-					"Session guitarist in Austin. Trying to understand the lyrics of my favourite bands.",
-					List.of("Music", "Language Learning", "Technology")),
-			// Korean speakers learning English
-			new Persona("minji", "Minji", "KR", "ko", "en", "m40",
-					"서울에 사는 개발자예요. Let's exchange letters about tech and travel!",
-					List.of("Travel", "Technology", "Language Learning")),
-			new Persona("jihoon", "Jihoon", "KR", "ko", "en", "m32",
-					"Busan native, barista, and a big football fan. 영어로 편지 쓰는 연습 중이에요.",
-					List.of("Sports", "Food", "Music")),
-			new Persona("yuna", "Yuna", "KR", "ko", "en", "m33",
-					"Illustrator who loves museums. I want to write about art and everyday life.",
-					List.of("Art", "Books", "Photography")),
-			new Persona("seoyeon", "Seoyeon", "KR", "ko", "en", "m12",
-					"대학원생이에요. Reading English novels without a dictionary is my dream.",
-					List.of("Books", "Movies", "Language Learning")),
-			new Persona("dohyun", "Dohyun", "KR", "ko", "en", "m23",
-					"Software engineer in Pangyo. Ask me anything about Korean food or tech.",
-					List.of("Technology", "Gaming", "Food")),
-			new Persona("haeun", "Haeun", "KR", "ko", "en", "m11",
-					"Pastry chef in Daegu! I'd love to swap recipes from your country.",
-					List.of("Food", "Travel", "Photography")),
-			new Persona("junho", "Junho", "KR", "ko", "en", "m19",
-					"Radio producer. Tell me your favourite songs and I'll tell you mine.",
-					List.of("Music", "Movies", "K-Culture")),
-			new Persona("soyeon", "Soyeon", "KR", "ko", "en", "m10",
-					"Preparing for a working holiday in Australia. 영어 편지 친구 구해요!",
-					List.of("Travel", "Sports", "Language Learning")),
-			// Other pairs, so the map isn't only Korea and English-speaking countries
-			new Persona("haruto", "Haruto", "JP", "ja", "ko", "m36",
-					"Osaka salaryman learning Korean for a trip to Busan. Let's eat everything.",
-					List.of("Food", "Travel", "K-Culture")),
-			new Persona("jisoo", "Jisoo", "KR", "ko", "ja", "m31",
-					"Anime fan studying Japanese. 일본어 편지 친구 찾아요!",
-					List.of("Movies", "Art", "Language Learning")),
-			new Persona("sofia", "Sofia", "ES", "es", "en", "m37",
-					"Architecture student in Madrid. I want to practise writing in English.",
-					List.of("Art", "Travel", "Photography")),
-			new Persona("mateo", "Mateo", "MX", "es", "en", "m13",
-					"Teacher from Guadalajara, learning English for my master's abroad.",
-					List.of("Books", "Music", "Language Learning")),
-			new Persona("daniel", "Daniel", "US", "en", "es", "m29",
-					"Nurse in San Diego learning Spanish to talk with my patients.",
-					List.of("Sports", "Food", "Language Learning")),
-			new Persona("camille", "Camille", "FR", "fr", "ko", "m35",
-					"Lyon. K-pop got me started, now I'm hooked on Korean poetry.",
-					List.of("Music", "Books", "K-Culture")),
-			new Persona("seojun", "Seojun", "KR", "ko", "fr", "m21",
-					"프랑스 유학 준비 중이에요. Let's talk about films and wine.",
-					List.of("Movies", "Food", "Travel")),
-			new Persona("isla", "Isla", "AU", "en", "ko", "m08",
-					"Night-owl librarian in Sydney. I collect stamps — real ones too!",
-					List.of("Books", "Photography", "Language Learning")));
 
 	private final AuthService authService;
 	private final UserService userService;
 	private final LetterService letterService;
 	private final CorrectionService correctionService;
+	private final StampService stampService;
 	private final UserRepository userRepository;
 	private final InterestRepository interestRepository;
+	private final DemoTimeline timeline;
 	private final JdbcTemplate jdbc;
-	private final EntityManager entityManager;
 
 	DemoDataSeeder(AuthService authService, UserService userService, LetterService letterService,
-			CorrectionService correctionService, UserRepository userRepository, InterestRepository interestRepository,
-			JdbcTemplate jdbc, EntityManager entityManager) {
+			CorrectionService correctionService, StampService stampService, UserRepository userRepository,
+			InterestRepository interestRepository, DemoTimeline timeline, JdbcTemplate jdbc) {
 		this.authService = authService;
 		this.userService = userService;
 		this.letterService = letterService;
 		this.correctionService = correctionService;
+		this.stampService = stampService;
 		this.userRepository = userRepository;
 		this.interestRepository = interestRepository;
+		this.timeline = timeline;
 		this.jdbc = jdbc;
-		this.entityManager = entityManager;
 	}
 
 	/**
-	 * All or nothing: if seeding fails half-way, nothing is kept, so the next start tries again instead
-	 * of seeing the first account and assuming the demo data is already there.
+	 * All or nothing: if seeding fails half-way, nothing is kept and the stored version doesn't change,
+	 * so the next start tries again.
 	 */
 	@Override
 	@Transactional
 	public void run(ApplicationArguments args) {
-		if (userRepository.existsByEmail(PERSONAS.getFirst().email())) {
+		String loaded = jdbc.query("SELECT value FROM app_settings WHERE key = 'demo_seed_version'",
+				rs -> rs.next() ? rs.getString(1) : null);
+		if (VERSION.equals(loaded)) {
 			return;
 		}
+		int removed = jdbc.update("DELETE FROM users WHERE email LIKE '%' || ?", DemoCast.DOMAIN);
+		createAccounts();
+		writeConversations();
+		timeline.backdateAccounts();
+		setting("demo_seed_version", VERSION);
+		// DemoTraffic prunes only letters after this one, so the seeded history stays
+		setting("demo_seed_last_letter", String.valueOf(jdbc.queryForObject("SELECT max(id) FROM letters", Long.class)));
+		log.info("Seeded demo data v{}: {} accounts (replaced {}), password '{}'", VERSION, DemoCast.ALL.size(),
+				removed, PASSWORD);
+	}
+
+	private void createAccounts() {
 		List<Interest> catalogue = interestRepository.findAll();
-		for (Persona p : PERSONAS) {
+		for (Persona p : DemoCast.ALL) {
 			long id = authService.signup(new SignupRequest(p.email(), PASSWORD, p.name(), p.country(), p.nativeLang(),
 					p.learningLang()));
 			Set<Long> interestIds = catalogue.stream()
@@ -174,77 +101,207 @@ class DemoDataSeeder implements ApplicationRunner {
 				.collect(Collectors.toSet());
 			userService.updateProfile(id, new UpdateProfileRequest(p.name(), p.country(), p.nativeLang(),
 					p.learningLang(), p.bio(), interestIds, p.avatar()));
+			// enough stamps for the scripted letters below
+			stampService.topUpDemoAccount(id, 20);
 		}
+	}
 
-		long emma = idOf("emma");
-		long minji = idOf("minji");
-		long liam = idOf("liam");
-		var first = letterService.send(emma, minji, """
+	/**
+	 * Emma (the "try a demo" account) gets the richest history: long threads, corrections in both
+	 * directions, letters waiting for her reply, and letters in the air both ways. Some letters with
+	 * mistakes are left uncorrected so visitors can try correcting them.
+	 */
+	private void writeConversations() {
+		long emma = id("emma");
+		long minji = id("minji");
+		long jihoon = id("jihoon");
+		long yuna = id("yuna");
+
+		// Emma <-> Minji: four letters over three weeks, corrected both ways.
+		long m1 = landed(emma, minji, null, 480, """
 				Hi Minji!
 
-				I saw you like travel too. I'm visiting Seoul next April for two weeks. \
-				Which neighborhoods would you recommend for someone who loves food and old streets?
+				I saw you like travel too. I'm visiting Seoul next April for two weeks. Which neighborhoods would you \
+				recommend for someone who loves food and old streets?
 
 				저는 한국 음식을 너무 좋아 해요. 서울에 처음 가서 정말 설레요!
 
 				안녕히 계세요,
 				Emma""");
-		backdate(first.id(), 3);
-		// Minji marks up Emma's Korean (and earns a stamp for it), so the demo shows a correction.
-		correctionService.correct(minji, first.id(), new CorrectionRequest(List.of(
-				new CorrectionRequest.Line("저는 한국 음식을 너무 좋아 해요.", "저는 한국 음식을 정말 좋아해요.",
+		timeline.read(m1, 3);
+		correct(minji, m1, 5, "Your Korean is really good! 😊",
+				fix("저는 한국 음식을 너무 좋아 해요.", "저는 한국 음식을 정말 좋아해요.",
 						"좋아하다 is one word; 정말 sounds more natural than 너무 here"),
-				new CorrectionRequest.Line("서울에 처음 가서 정말 설레요!", "서울에 처음 가는 거라 정말 설레요!",
-						"-는 거라 = because it's my first time going")),
-				"Your Korean is really good! 😊"));
-		var answer = letterService.reply(minji, first.id(), """
+				fix("서울에 처음 가서 정말 설레요!", "서울에 처음 가는 거라 정말 설레요!", "-는 거라 = because it's my first time going"));
+		long m2 = landed(minji, emma, m1, 440, """
 				Hi Emma! April is perfect, the cherry blossoms will be out.
 
-				For food and old streets, try Seochon near Gyeongbokgung, and Mangwon Market for snacks. \
-				Tell me what dishes you want to try and I'll find good places!
+				For food and old streets, try Seochon near Gyeongbokgung. I am recommend Mangwon Market for snacks, it is \
+				very famous for local people.
 
-				I corrected a couple of your Korean sentences — check the correction tab!
+				I corrected a couple of your Korean sentences, check the correction tab!
 				Minji""");
-		backdate(answer.id(), 2);
+		timeline.read(m2, 1);
+		correct(emma, m2, 2, null,
+				fix("I am recommend Mangwon Market for snacks, it is very famous for local people.",
+						"I recommend Mangwon Market for snacks; it's very popular with locals.",
+						"'recommend' doesn't need 'am'; 'popular with locals' sounds more natural"));
+		long m3 = landed(emma, minji, m2, 300, """
+				민지 씨, 고마워요!
 
-		// Letters that arrived and are waiting for an answer (fills the "awaiting your reply" list).
-		landed(idOf("chloe"), minji, 1, "Hi Minji! I'm Chloe from Dublin. 저는 한국 노래를 정말 좋아해요. What do you listen to on your commute?");
-		landed(idOf("olivia"), idOf("seoyeon"), 1, "Hello Seoyeon! Which English novel are you reading now? I just finished 'Pachinko'.");
-		landed(idOf("haruto"), idOf("jisoo"), 2, "지수 씨, 안녕하세요! 오사카에 사는 하루토입니다. 부산에 가 본 적 있어요?");
-		landed(idOf("sofia"), idOf("daniel"), 1, "Hi Daniel! I'm Sofia from Madrid. Do you want to practise Spanish with me? ¡Hasta pronto!");
+				서촌에 꼭 갈 거예요. 저는 떡볶이를 먹고 싶어요 근데 너무 매울까 봐 걱정이에요. 망원시장에서 뭐 먹어야 돼요?
 
-		// Letters still in the air, so the maps have something to show on first login.
-		letterService.send(liam, minji, "Hey Minji! Vancouver here. 반가워요 — want to swap hiking spots?");
-		letterService.send(idOf("ava"), minji, "Kia ora Minji! I'm Ava from Wellington. 한국어를 배우고 있어요. Nice to meet you!");
-		letterService.send(idOf("jihoon"), idOf("ethan"), "Hi Ethan! Do you play FIFA? I'm a big Busan IPark fan ⚽");
-		letterService.send(idOf("camille"), idOf("seojun"), "Bonjour Seojun ! 저는 리옹에 사는 카미유예요. Quel est ton film préféré ?");
-		letterService.send(idOf("haeun"), idOf("noah"), "Hi Noah! What's the best brunch in Melbourne? I'm a pastry chef in Daegu 🍰");
-		log.info("Seeded {} demo accounts (password '{}')", PERSONAS.size(), PASSWORD);
+				P.S. My Korean teacher says I should write more, so I'm trying!
+				Emma""");
+		timeline.read(m3, 4);
+		correct(minji, m3, 6, "점점 더 자연스러워져요!",
+				fix("저는 떡볶이를 먹고 싶어요 근데 너무 매울까 봐 걱정이에요.", "떡볶이를 먹고 싶은데, 너무 매울까 봐 걱정이에요.",
+						"Join the two clauses with -는데 instead of 근데"),
+				fix("망원시장에서 뭐 먹어야 돼요?", "망원시장에서는 뭘 먹어야 해요?", "-야 해요 reads more naturally in writing"));
+		landed(minji, emma, m3, 30, """
+				Emma, don't worry about the spicy! Just ask for 덜 맵게 해 주세요, less spicy please. At Mangwon Market \
+				you must try the hotteok and the dakgangjeong.
+
+				Your Korean is getting better every letter. Write me again soon!
+				Minji""");
+
+		// Emma <-> Jihoon: he writes in English, she answers in Korean, his next letter is on its way.
+		long j1 = landed(jihoon, emma, null, 200, """
+				Hello Emma!
+
+				My name is Jihoon and I am working at a coffee shop in Busan. I saw your profile and you likes \
+				K-dramas. Me too! Recently I watched a drama about Jeju island and I cried so much.
+
+				Do you drink coffee? What is your favorite?
+
+				From Busan,
+				Jihoon""");
+		timeline.read(j1, 2);
+		correct(emma, j1, 3, "Your English is great!",
+				fix("My name is Jihoon and I am working at a coffee shop in Busan.",
+						"My name is Jihoon and I work at a coffee shop in Busan.", "Use the simple present for a regular job"),
+				fix("I saw your profile and you likes K-dramas.", "I saw on your profile that you like K-dramas.",
+						"'you like', with no -s"));
+		long j2 = landed(emma, jihoon, j1, 170, """
+				지훈 씨, 안녕하세요!
+
+				저는 커피를 매일 마셔요. 제일 좋아하는 커피는 아이스 라떼예요. 겨울에도 아이스 마셔요!
+
+				부산에 가고 싶어요. 바다 근처에 좋은 카페 있어요?
+
+				Emma""");
+		timeline.read(j2, 1);
+		correct(jihoon, j2, 2, null,
+				fix("겨울에도 아이스 마셔요!", "겨울에도 아이스로 마셔요!", "아이스로 = 'iced', as the way you drink it"),
+				fix("바다 근처에 좋은 카페 있어요?", "바다 근처에 좋은 카페가 있어요?", "Keep the 가 in writing"));
+		inFlight(jihoon, emma, j2, 0.6, """
+				Emma! Iced latte in winter has a name in Korea: 얼죽아, "iced even if I freeze to death". You are a real \
+				Korean now 😄
+
+				There are many cafes near Haeundae beach. I will draw you a map in my next letter!""");
+
+		// Emma <-> Yuna: Yuna wrote first, Emma corrected and replied, no answer yet.
+		long y1 = landed(yuna, emma, null, 120, """
+				Hi Emma, I'm Yuna. I'm an illustrator in Seoul and I am loving museums. When you come to Seoul, you \
+				should visit the National Museum of Korea, it is free!
+
+				What kind of art do you like?
+				Yuna""");
+		timeline.read(y1, 5);
+		correct(emma, y1, 6, null, fix("I'm an illustrator in Seoul and I am loving museums.",
+				"I'm an illustrator in Seoul and I love museums.", "'love' for a general preference isn't used in -ing"));
+		long y2 = landed(emma, yuna, y1, 90, """
+				유나 씨, 고마워요! 국립중앙박물관에 꼭 가 볼게요. 저는 수채화를 좋아해요.
+
+				Do you have a favorite Korean painter?
+				Emma""");
+		timeline.read(y2, 8);
+
+		// Waiting for Emma's reply (one unread, one read), with mistakes left for visitors to correct.
+		landed(id("seoyeon"), emma, null, 10, """
+				Hi Emma! I'm Seoyeon, a graduate student. I read in your profile that you are visiting Seoul.
+
+				Have you read any Korean novels in English? I recently finished The Vegetarian again. I would love to \
+				know what books you are liking!
+				Seoyeon""");
+		long d1 = landed(emma, id("dohyun"), null, 60, """
+				Hello! This is a random letter from Emma in the US 😊
+
+				저는 한국어를 배우고 있어요. 요즘 한국 음식 만드는 거 배우고 있어요. 좋아하는 음식이 뭐예요?""");
+		timeline.read(d1, 2);
+		long d2 = landed(id("dohyun"), emma, d1, 12, """
+				Hi Emma! What a nice surprise. My favorite food is 김치찌개. If you are learning to cook Korean food, you \
+				should try 계란말이 first, it is easy and delicious.
+
+				Good luck!
+				Dohyun""");
+		timeline.read(d2, 1);
+
+		// In the air: two letters to Emma, two from her.
+		inFlight(id("haeun"), emma, null, 0.8, """
+				Hi Emma! I'm Haeun, a pastry chef in Daegu. I heard you like Korean food. Have you tried 약과? I can send \
+				you my recipe in my next letter!""");
+		inFlight(emma, id("junho"), null, 0.3, """
+				Hi Junho! I love that you're a radio producer. Which song should I listen to first to get into Korean \
+				ballads?
+
+				Emma""");
+		inFlight(emma, id("soyeon"), null, 0.5, """
+				Soyeon! I saw you're going to Australia on a working holiday. 저는 멜버른에 친구가 있어요. Do you want some tips?
+
+				Emma""");
+
+		// Around the rest of the cast, so other accounts and the maps aren't empty.
+		landed(id("chloe"), minji, null, 20,
+				"Hi Minji! I'm Chloe from Dublin. 저는 한국 노래를 정말 좋아해요. What do you listen to on your commute?");
+		landed(id("olivia"), id("seoyeon"), null, 26,
+				"Hello Seoyeon! Which English novel are you reading now? I just finished Pachinko.");
+		landed(id("haruto"), id("jisoo"), null, 40, "지수 씨, 안녕하세요! 오사카에 사는 하루토입니다. 부산에 가 본 적 있어요?");
+		landed(id("sofia"), id("daniel"), null, 22,
+				"Hi Daniel! I'm Sofia from Madrid. Do you want to practise Spanish with me? ¡Hasta pronto!");
+		inFlight(id("liam"), minji, null, 0.4, "Hey Minji! Vancouver here. 반가워요! Want to swap hiking spots?");
+		inFlight(id("ava"), minji, null, 0.7, "Kia ora Minji! I'm Ava from Wellington. 한국어를 배우고 있어요. Nice to meet you!");
+		inFlight(jihoon, id("ethan"), null, 0.2, "Hi Ethan! Do you play FIFA? I'm a big Busan IPark fan ⚽");
+		inFlight(id("camille"), id("seojun"), null, 0.5,
+				"Bonjour Seojun ! 저는 리옹에 사는 카미유예요. Quel est ton film préféré ?");
+		inFlight(id("haeun"), id("noah"), null, 0.35,
+				"Hi Noah! What's the best brunch in Melbourne? I'm a pastry chef in Daegu 🍰");
 	}
 
-	private void landed(long from, long to, int daysAgo, String body) {
-		backdate(letterService.send(from, to, body).id(), daysAgo);
+	/** Sends (or replies) and moves the letter so it landed {@code hoursAgo} hours ago. */
+	private long landed(long from, long to, Long parentId, double hoursAgo, String body) {
+		long id = write(from, to, parentId, body);
+		timeline.landed(id, hoursAgo);
+		return id;
 	}
 
-	/**
-	 * Pretends a seeded letter was sent {@code days} ago and has long since landed, so the demo opens on
-	 * a conversation already in progress. The arrival is marked processed: nobody was online to notify.
-	 */
-	private void backdate(long letterId, int days) {
-		// Plain SQL bypasses JPA, and the whole seed is one transaction: flush pending changes first and
-		// clear the persistence context afterwards, or a later read would see the cached, un-landed letter.
-		entityManager.flush();
+	private void inFlight(long from, long to, Long parentId, double progress, String body) {
+		timeline.inFlight(write(from, to, parentId, body), progress);
+	}
+
+	private long write(long from, long to, Long parentId, String body) {
+		return parentId == null ? letterService.send(from, to, body).id() : letterService.reply(from, parentId, body).id();
+	}
+
+	private void correct(long correctorId, long letterId, double hoursAfterLanding, String comment,
+			CorrectionRequest.Line... lines) {
+		correctionService.correct(correctorId, letterId, new CorrectionRequest(List.of(lines), comment));
+		timeline.corrected(letterId, hoursAfterLanding);
+	}
+
+	private static CorrectionRequest.Line fix(String original, String corrected, String note) {
+		return new CorrectionRequest.Line(original, corrected, note);
+	}
+
+	private void setting(String key, String value) {
 		jdbc.update("""
-				UPDATE letters
-				SET sent_at = sent_at - make_interval(days => ?), deliver_at = sent_at - make_interval(days => ?),
-				    arrival_notified_at = sent_at - make_interval(days => ?)
-				WHERE id = ?
-				""", days, days, days, letterId);
-		entityManager.clear();
+				INSERT INTO app_settings (key, value) VALUES (?, ?)
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+				""", key, value);
 	}
 
-	private long idOf(String key) {
-		return userRepository.findByEmail(key + "@demo.kren").orElseThrow().getId();
+	private long id(String key) {
+		return userRepository.findByEmail(key + DemoCast.DOMAIN).orElseThrow().getId();
 	}
 
 }

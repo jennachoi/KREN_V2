@@ -120,7 +120,7 @@ export interface Correction {
 export interface LedgerEntry {
   id: number
   amount: number
-  reason: 'SIGNUP' | 'CHECKIN' | 'SEND_LETTER' | 'CORRECTION'
+  reason: 'SIGNUP' | 'CHECKIN' | 'SEND_LETTER' | 'CORRECTION' | 'DEMO_TOPUP'
   letterId: number | null
   createdAt: string
 }

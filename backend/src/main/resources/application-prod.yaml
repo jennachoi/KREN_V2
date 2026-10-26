@@ -13,6 +13,9 @@ server:
 kren:
   demo:
     seed: ${KREN_DEMO_SEED:true}
+    # Demo accounts keep writing to each other so there are always letters in the air.
+    traffic:
+      enabled: ${KREN_DEMO_TRAFFIC:true}
   delivery:
     # The live site is a demo: 1 hour of flight = 1 minute, so a 24h letter lands in 24 minutes.
     time-scale: ${KREN_DELIVERY_TIME_SCALE:60}

@@ -69,6 +69,13 @@ public class StampService {
 		ledgerRepository.save(new StampLedgerEntry(userId, CORRECTION_REWARD, StampReason.CORRECTION, letterId));
 	}
 
+	/** Demo accounts only: keeps the demo letter generator from running dry. */
+	@Transactional
+	public void topUpDemoAccount(long userId, int amount) {
+		userRepository.addStamps(userId, amount);
+		ledgerRepository.save(new StampLedgerEntry(userId, amount, StampReason.DEMO_TOPUP, null));
+	}
+
 	@Transactional
 	public CheckinResponse checkIn(long userId) {
 		LocalDate today = LocalDate.now(clock);

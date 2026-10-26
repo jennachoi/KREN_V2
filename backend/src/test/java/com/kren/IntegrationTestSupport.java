@@ -48,7 +48,7 @@ public abstract class IntegrationTestSupport {
 	@BeforeEach
 	void cleanDatabase() {
 		clock.reset();
-		jdbc.execute("TRUNCATE users, user_interests, letters, stamp_ledger, daily_checkins, blocks RESTART IDENTITY CASCADE");
+		jdbc.execute("TRUNCATE users, user_interests, letters, stamp_ledger, daily_checkins, blocks, app_settings RESTART IDENTITY CASCADE");
 	}
 
 	/**
