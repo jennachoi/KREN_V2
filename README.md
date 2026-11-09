@@ -1,18 +1,14 @@
-<h3 align="center">
-  Penpal letters that travel like real mail, corrected by native speakers.
-</h3>
-
 <p align="center">
-  <a href="https://kren.jennachoi.me"><img src="docs/screenshots/home.jpg" alt="KREN home dashboard" width="900"/></a>
+  <img src="frontend/public/logo.png" alt="KREN logo" width="200"/>   <h3 align="center">Penpal letters that travel like real mail, corrected by native speakers.</h3>
 </p>
+
 
 <p align="center">
   <a href="https://kren.jennachoi.me"><b>Live demo</b></a><br>
   No sign-up needed: press <b>TRY A DEMO</b> on the login screen to look around.
 </p>
-
 <p align="center">
-  <a href="https://github.com/jennachoi/KREN_V2/actions/workflows/ci.yml"><img src="https://github.com/jennachoi/KREN_V2/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://kren.jennachoi.me"><img src="docs/screenshots/login.jpg" alt="KREN login screen" width="400"/></a>
 </p>
 
 <br>
